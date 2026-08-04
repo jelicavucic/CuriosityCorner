@@ -1,16 +1,23 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
+# Dependencies & Build Outputs
 node_modules/
-
-# Expo
-.expo/
 dist/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
 web-build/
-expo-env.d.ts
+example
 
-# Native
+# Expo & Mobile (Native)
+.expo/
+expo-env.d.ts
 .kotlin/
+/ios
+/android
 *.orig.*
 *.jks
 *.p8
@@ -18,26 +25,47 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Metro
+# Metro & Debug
 .metro-health-check*
-
-# debug
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
-
-# local env files
+# Environment & Local Configuration
 .env*.local
-
-# typescript
+*.pem
 *.tsbuildinfo
 
-example
+# OS Specific
+.DS_Store
 
-# generated native folders
-/ios
-/android
+# Java & Build Wrappers
+HELP.md
+.mvn/wrapper/maven-wrapper.jar
+
+# Editors & IDEs
+
+### VS Code ###
+.vscode/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### Eclipse / STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
