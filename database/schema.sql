@@ -800,6 +800,19 @@ DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_unicode_ci;
 
 
+-- -----------------------------------------------------
+-- Table `curiosity_corner`.`avatar`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `curiosity_corner`.`avatar` (
+  `idAvatara` INT NOT NULL AUTO_INCREMENT,
+  `Naziv` VARCHAR(255) NOT NULL,
+  `PutanjaSlike` VARCHAR(255) NOT NULL,
+  `Aktivan` TINYINT NOT NULL,
+  PRIMARY KEY (`idAvatara`),
+  UNIQUE INDEX `Naziv_UNIQUE` (`Naziv` ASC) VISIBLE)
+ENGINE = InnoDB;
+
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
