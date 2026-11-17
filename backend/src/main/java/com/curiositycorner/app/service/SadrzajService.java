@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class SadrzajService {
@@ -39,7 +40,13 @@ public class SadrzajService {
 
     @Transactional
     public SadrzajResponse izmijeni(Integer id, SadrzajRequest request) {
-        Sadrzaj sadrzaj = pronadjiEntitet(id);
+        Sadrzaj sadrzaj = repository.pronadjiZaIzmjenu(List.of(id)).stream().findFirst()
+                .orElseThrow(() -> nePostoji(id));
+        if (!Objects.equals(sadrzaj.getPutanjaSlike(), praznoUNull(request.putanjaSlike()))
+                && repository.koristiSeUMemoriji(id) != 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Slika se koristi u memoriji. Za drugu sliku napravite novi sadrzaj.");
+        }
         postaviPodatke(sadrzaj, request);
         return uResponse(repository.saveAndFlush(sadrzaj));
     }
@@ -57,8 +64,11 @@ public class SadrzajService {
     }
 
     private Sadrzaj pronadjiEntitet(Integer id) {
-        return repository.findById(id).orElseThrow(() -> new ApiException(
-                HttpStatus.NOT_FOUND, "Sadrzaj sa ID-em " + id + " ne postoji."));
+        return repository.findById(id).orElseThrow(() -> nePostoji(id));
+    }
+
+    private ApiException nePostoji(Integer id) {
+        return new ApiException(HttpStatus.NOT_FOUND, "Sadrzaj sa ID-em " + id + " ne postoji.");
     }
 
     private void postaviPodatke(Sadrzaj sadrzaj, SadrzajRequest request) {

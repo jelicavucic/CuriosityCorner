@@ -224,12 +224,19 @@ CREATE TABLE IF NOT EXISTS `curiosity_corner`.`igrac` (
   `Ime` VARCHAR(150) NOT NULL,
   `DatumRodjenja` DATE NOT NULL,
   `korisnik_idKorisnika` INT UNSIGNED NOT NULL,
+  `idAvatara` INT NULL DEFAULT NULL,
   PRIMARY KEY (`IdIgraca`),
   INDEX `fk_igrac_korisnik1_idx` (`korisnik_idKorisnika` ASC) VISIBLE,
+  INDEX `fk_igrac_avatar1_idx` (`idAvatara` ASC) VISIBLE,
   CONSTRAINT `fk_igrac_korisnik1`
     FOREIGN KEY (`korisnik_idKorisnika`)
     REFERENCES `curiosity_corner`.`korisnik` (`idKorisnika`)
     ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_igrac_avatar1`
+    FOREIGN KEY (`idAvatara`)
+    REFERENCES `curiosity_corner`.`avatar` (`idAvatara`)
+    ON DELETE SET NULL
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4

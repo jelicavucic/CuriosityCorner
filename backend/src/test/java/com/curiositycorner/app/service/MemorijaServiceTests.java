@@ -39,15 +39,15 @@ class MemorijaServiceTests {
         return sadrzaj;
     }
 
-    private void slike() {
-        var podaci = List.of(slika(10, "/api/fajlovi/pas.png"), slika(20, "/api/fajlovi/macka.png"));
-        when(sadrzaji.findAllById(any())).thenReturn(podaci);
+    private List<Sadrzaj> slike() {
+        return List.of(slika(10, "/api/fajlovi/pas.png"), slika(20, "/api/fajlovi/macka.png"));
     }
 
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
     void odJedneSlikePraviDvijeKarticeIZamjenjujeStaruKonfiguraciju() {
-        slike();
+        var podaci = slike();
+        when(sadrzaji.pronadjiZaIzmjenu(any())).thenReturn(podaci);
         when(memorije.saveAndFlush(any())).thenAnswer(p -> p.getArgument(0));
         when(kartice.saveAllAndFlush(any())).thenAnswer(p -> p.getArgument(0));
         var rezultat = service.sacuvaj(5L, zahtjev());
@@ -75,7 +75,7 @@ class MemorijaServiceTests {
     @Test
     void odbijaIstuSlikuPodDvaIda() {
         var podaci = List.of(slika(10, "/api/fajlovi/pas.png"), slika(20, "/api/fajlovi/pas.png"));
-        when(sadrzaji.findAllById(any())).thenReturn(podaci);
+        when(sadrzaji.pronadjiZaIzmjenu(any())).thenReturn(podaci);
         assertThrows(ApiException.class, () -> service.sacuvaj(5L, zahtjev()));
         verifyNoInteractions(memorije, kartice);
     }
@@ -83,7 +83,7 @@ class MemorijaServiceTests {
     @Test
     void odbijaTekstBezSlike() {
         var podaci = List.of(slika(10, null), slika(20, "/api/fajlovi/a.png"));
-        when(sadrzaji.findAllById(any())).thenReturn(podaci);
+        when(sadrzaji.pronadjiZaIzmjenu(any())).thenReturn(podaci);
         assertThrows(ApiException.class, () -> service.sacuvaj(5L, zahtjev()));
         verifyNoInteractions(memorije, kartice);
     }
@@ -91,7 +91,7 @@ class MemorijaServiceTests {
     @Test
     void odbijaNepostojeciSadrzaj() {
         var podaci = List.of(slika(10, "/api/fajlovi/a.png"));
-        when(sadrzaji.findAllById(any())).thenReturn(podaci);
+        when(sadrzaji.pronadjiZaIzmjenu(any())).thenReturn(podaci);
         assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class,
                 () -> service.sacuvaj(5L, zahtjev())).getStatus());
         verifyNoInteractions(memorije, kartice);
@@ -130,7 +130,8 @@ class MemorijaServiceTests {
 
     @Test
     void citaKonfiguracijuSaJednomSlikomPoParu() {
-        slike();
+        var podaci = slike();
+        when(sadrzaji.findAllById(any())).thenReturn(podaci);
         when(memorije.findById(5L)).thenReturn(Optional.of(new Memorija(5L, 2, null)));
         when(kartice.findByIdAktivnostiOrderByBrojParaAscIdAsc(5L)).thenReturn(List.of(
                 new KarticaMemorije(5L, 1, 10), new KarticaMemorije(5L, 1, 10),

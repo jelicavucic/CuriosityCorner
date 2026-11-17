@@ -65,10 +65,21 @@ Za svaku konfiguraciju koristimo GET i PUT
 Tekstovi i slike prvo se unose kao `sadrzaji`, pa se ovdje šalju njihovi ID-evi.
 Ovo su admin podaci: mobilni API ne smije otkrivati rješenja.
 
+Za memoriju se šalje jedan sadržaj po paru. Backend od njega pravi dvije kartice
+s istom slikom. Dok memorija koristi sadržaj, promjena ili uklanjanje njegove
+slike kroz API za sadržaje vraća 409. Prije prvog pokušaja admin može odabrati
+novi sadržaj u konfiguraciji memorije. Nakon prvog pokušaja za izmjene se pravi
+nova aktivnost.
+
+Za spajanje admin GET vraća konfiguraciju po rednom broju para. GET
+`/api/admin/aktivnosti/{id}/spajanje/pregled` vraća dvije liste ID-eva sadržaja.
+Kad je uključen nasumičan raspored, pregled promiješa desnu listu pri svakom
+dohvatu. Sačuvani parovi i njihov redoslijed ostaju isti.
+
 | Tip u putanji | Primjer tijela PUT zahtjeva |
 | --- | --- |
 | `pitanje` | `{"idSadrzaja":1,"objasnjenje":"Pas je životinja.","odgovori":[{"idSadrzaja":2,"redniBroj":1,"jeTacan":true},{"idSadrzaja":3,"redniBroj":2,"jeTacan":false}]}` |
-| `memorija` | `{"brojKolona":2,"vrijemeZaRjesavanje":60,"kartice":[{"brojPara":1,"idSadrzaja":2},{"brojPara":1,"idSadrzaja":2}]}` |
+| `memorija` | `{"brojKolona":2,"vrijemeZaRjesavanje":60,"idSadrzajaParova":[2,3]}` |
 | `spajanje` | `{"nasumicanRaspored":true,"parovi":[{"redniBroj":1,"idLijevogSadrzaja":2,"idDesnogSadrzaja":3}]}` |
 | `razvrstavanje` | `{"grupe":[{"naziv":"Životinje","stavke":[{"idSadrzaja":2}]}]}` |
 | `slaganje-slova` | `{"ciljniTekst":"PAS","putanjaSlike":"/api/fajlovi/1"}` |

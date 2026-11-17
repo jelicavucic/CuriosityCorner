@@ -31,7 +31,10 @@ public class MemorijaService {
         provjeriTip(aktivnost);
         Memorija memorija = memorije.findById(id).orElseThrow(() -> new ApiException(
                 HttpStatus.NOT_FOUND, "Konfiguracija memorije jos nije unesena."));
-        return uResponse(memorija, kartice.findByIdAktivnostiOrderByBrojParaAscIdAsc(id));
+        List<KarticaMemorije> sveKartice = kartice.findByIdAktivnostiOrderByBrojParaAscIdAsc(id);
+        var sadrzajPoId = indeksirajSadrzaje(sadrzaji.findAllById(
+                sveKartice.stream().map(KarticaMemorije::getIdSadrzaja).distinct().toList()));
+        return uResponse(memorija, sveKartice, sadrzajPoId);
     }
 
     @Transactional
@@ -52,7 +55,7 @@ public class MemorijaService {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Broj kartica mora biti djeljiv brojem kolona.");
         }
-        Map<Integer, Sadrzaj> odabrani = ucitajSadrzaje(ids);
+        Map<Integer, Sadrzaj> odabrani = indeksirajSadrzaje(sadrzaji.pronadjiZaIzmjenu(ids));
         Set<String> slike = new HashSet<>();
         for (Integer idSadrzaja : ids) {
             Sadrzaj sadrzaj = odabrani.get(idSadrzaja);
@@ -76,7 +79,7 @@ public class MemorijaService {
             noveKartice.add(new KarticaMemorije(id, i + 1, ids.get(i)));
             noveKartice.add(new KarticaMemorije(id, i + 1, ids.get(i)));
         }
-        return uResponse(memorija, kartice.saveAllAndFlush(noveKartice));
+        return uResponse(memorija, kartice.saveAllAndFlush(noveKartice), odabrani);
     }
 
     private void provjeriTip(Aktivnost aktivnost) {
@@ -89,17 +92,16 @@ public class MemorijaService {
         return new ApiException(HttpStatus.NOT_FOUND, "Aktivnost " + id + " ne postoji.");
     }
 
-    private Map<Integer, Sadrzaj> ucitajSadrzaje(Collection<Integer> ids) {
+    private Map<Integer, Sadrzaj> indeksirajSadrzaje(List<Sadrzaj> sadrzaji) {
         Map<Integer, Sadrzaj> rezultat = new HashMap<>();
-        for (Sadrzaj sadrzaj : sadrzaji.findAllById(ids)) {
+        for (Sadrzaj sadrzaj : sadrzaji) {
             rezultat.put(sadrzaj.getId(), sadrzaj);
         }
         return rezultat;
     }
 
-    private MemorijaResponse uResponse(Memorija memorija, List<KarticaMemorije> sveKartice) {
-        Map<Integer, Sadrzaj> sadrzajPoId = ucitajSadrzaje(
-                sveKartice.stream().map(KarticaMemorije::getIdSadrzaja).distinct().toList());
+    private MemorijaResponse uResponse(Memorija memorija, List<KarticaMemorije> sveKartice,
+                                       Map<Integer, Sadrzaj> sadrzajPoId) {
         Map<Integer, MemorijaResponse.ParMemorijeResponse> parovi = new TreeMap<>();
         for (KarticaMemorije kartica : sveKartice) {
             Sadrzaj sadrzaj = sadrzajPoId.get(kartica.getIdSadrzaja());
