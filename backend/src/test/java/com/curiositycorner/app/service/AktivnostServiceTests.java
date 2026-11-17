@@ -80,7 +80,7 @@ class AktivnostServiceTests {
 
     @Test
     void odbijaBrisanjeAktivnostiSaPokusajima() {
-        postojecaAktivnost();
+        when(repository.pronadjiZaIzmjenu(5L)).thenReturn(Optional.of(mock(Aktivnost.class)));
         when(repository.brojPokusaja(5L)).thenReturn(1L);
         ApiException greska = assertThrows(ApiException.class, () -> service.obrisi(5L));
         assertEquals(HttpStatus.CONFLICT, greska.getStatus());

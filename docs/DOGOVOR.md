@@ -76,12 +76,17 @@ Za spajanje admin GET vraća konfiguraciju po rednom broju para. GET
 Kad je uključen nasumičan raspored, pregled promiješa desnu listu pri svakom
 dohvatu. Sačuvani parovi i njihov redoslijed ostaju isti.
 
+Za razvrstavanje svaka grupa ima naziv i najmanje jednu stavku. Isti sadržaj
+može se koristiti jednom po aktivnosti. PUT prije prvog pokušaja zamjenjuje
+grupe i stavke u jednoj transakciji. GET vraća ID-eve grupa, stavki i sadržaja.
+Nakon prvog pokušaja PUT vraća 409.
+
 | Tip u putanji | Primjer tijela PUT zahtjeva |
 | --- | --- |
 | `pitanje` | `{"idSadrzaja":1,"objasnjenje":"Pas je životinja.","odgovori":[{"idSadrzaja":2,"redniBroj":1,"jeTacan":true},{"idSadrzaja":3,"redniBroj":2,"jeTacan":false}]}` |
 | `memorija` | `{"brojKolona":2,"vrijemeZaRjesavanje":60,"idSadrzajaParova":[2,3]}` |
 | `spajanje` | `{"nasumicanRaspored":true,"parovi":[{"redniBroj":1,"idLijevogSadrzaja":2,"idDesnogSadrzaja":3}]}` |
-| `razvrstavanje` | `{"grupe":[{"naziv":"Životinje","stavke":[{"idSadrzaja":2}]}]}` |
+| `razvrstavanje` | `{"grupe":[{"naziv":"Voće","stavke":[{"idSadrzaja":2}]},{"naziv":"Povrće","stavke":[{"idSadrzaja":3}]}]}` |
 | `slaganje-slova` | `{"ciljniTekst":"PAS","putanjaSlike":"/api/fajlovi/1"}` |
 | `osmosmjerka` | `{"brojRedova":2,"brojKolona":3,"mreza":[["P","A","S"],["M","I","Š"]],"rijeci":[{"rijec":"PAS","pocetniRed":0,"pocetnaKolona":0,"krajnjiRed":0,"krajnjaKolona":2}]}` |
 | `bajka` | `{"naslov":"Mali medo","tekst":"Jednom davno…","putanjaAudioZapisa":null,"putanjaNaslovneSlike":null}` |

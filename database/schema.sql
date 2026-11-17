@@ -811,15 +811,13 @@ COLLATE = utf8mb4_unicode_ci;
 -- -----------------------------------------------------
 -- Table `curiosity_corner`.`avatar`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `curiosity_corner`.`avatar` (
-  `idAvatara` INT NOT NULL AUTO_INCREMENT,
-  `Naziv` VARCHAR(255) NOT NULL,
-  `PutanjaSlike` VARCHAR(255) NOT NULL,
-  `Aktivan` TINYINT NOT NULL,
-  PRIMARY KEY (`idAvatara`),
-  UNIQUE INDEX `Naziv_UNIQUE` (`Naziv` ASC) VISIBLE)
-ENGINE = InnoDB;
-
+ALTER TABLE curiosity_corner.igrac
+    ADD COLUMN idAvatara INT NULL DEFAULT NULL,
+    ADD CONSTRAINT fk_igrac_avatar1
+        FOREIGN KEY (idAvatara)
+        REFERENCES curiosity_corner.avatar (idAvatara)
+        ON DELETE SET NULL;
+SHOW CREATE TABLE curiosity_corner.igrac;
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
