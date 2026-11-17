@@ -1,14 +1,10 @@
--- Pocetni podaci prema prototipu, bez stavki "Test" i bez slika.
--- Prvo izvrsiti schema.sql, zatim cijeli ovaj fajl u MySQL Workbenchu.
--- Pokretati iz jedne sesije, bez paralelnog izvrsavanja ove skripte.
--- Postojece zapise ne mijenja niti brise. Ponovno pokretanje ne dodaje duplikate.
+
 SET NAMES utf8mb4;
 USE curiosity_corner;
 
 START TRANSACTION;
 
--- Glavne kategorije imaju IdNadkategorije = NULL.
--- NOT EXISTS je potreban jer UNIQUE indeks dozvoljava vise NULL vrijednosti.
+
 INSERT INTO kategorija (IdNadkategorije, Naziv, Opis)
 SELECT NULL, podaci.Naziv, NULL
 FROM (
@@ -24,8 +20,6 @@ WHERE NOT EXISTS (
       AND postojeca.Naziv = podaci.Naziv
 );
 
--- Ako vec postoje duplirane glavne kategorije, koristi onu s najmanjim ID-em.
--- ID-evi se pronalaze po nazivu; ne pretpostavlja se da je baza prazna.
 INSERT INTO kategorija (IdNadkategorije, Naziv, Opis)
 SELECT roditelj.IdKategorije, podaci.Naziv, NULL
 FROM (
@@ -54,7 +48,6 @@ WHERE NOT EXISTS (
       AND postojeca.Naziv = podaci.Naziv
 );
 
--- Sifarnik tipova aktivnosti. Oznake su stabilni kljucevi za aplikaciju.
 INSERT INTO tip_aktivnosti (Oznaka, Naziv)
 SELECT podaci.Oznaka, podaci.Naziv
 FROM (
@@ -73,7 +66,7 @@ WHERE NOT EXISTS (
 
 COMMIT;
 
--- Pregled stvarno sacuvane hijerarhije i tipova aktivnosti.
+
 SELECT k.IdKategorije, k.Naziv, k.IdNadkategorije, n.Naziv AS Nadkategorija
 FROM kategorija AS k
 LEFT JOIN kategorija AS n ON n.IdKategorije = k.IdNadkategorije
