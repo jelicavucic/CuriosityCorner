@@ -1,0 +1,35 @@
+@baseUrl = http://localhost:8080/api
+# Zamijeni ID-eve stvarnim vrijednostima iz baze.
+@idIgrice = 1
+@idNivoa = 1
+
+### Svi nivoi
+GET {{baseUrl}}/nivoi
+
+### Jedan nivo
+GET {{baseUrl}}/nivoi/{{idNivoa}}
+
+### Kreiranje (ocekivano 201)
+POST {{baseUrl}}/nivoi
+Content-Type: application/json
+
+{
+  "idIgrice": {{idIgrice}},
+  "redniBroj": 1,
+  "naziv": "Prvi nivo",
+  "bodoviZaOtkljucavanje": 0
+}
+
+### Potpuna izmjena (ocekivano 200)
+PUT {{baseUrl}}/nivoi/{{idNivoa}}
+Content-Type: application/json
+
+{
+  "idIgrice": {{idIgrice}},
+  "redniBroj": 1,
+  "naziv": "Upoznaj zivotinje",
+  "bodoviZaOtkljucavanje": 10
+}
+
+### Brisanje (204 ili 409 ako se nivo koristi)
+DELETE {{baseUrl}}/nivoi/{{idNivoa}}

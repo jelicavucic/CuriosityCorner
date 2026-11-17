@@ -1,7 +1,6 @@
 package com.curiositycorner.app.entity;
 
 import jakarta.persistence.*;
-import org.springframework.resilience.annotation.EnableResilientMethods;
 
 @Entity
 @Table(name = "igrica")
@@ -25,20 +24,24 @@ public class Igrica {
     @Column(name = "Status", nullable = false, length = 30)
     private String status;
 
-    @Column(name = "Uzrast", nullable = false)
-    private Integer uzrast;
+    @Column(name = "MinimalniUzrast", nullable = false)
+    private Integer minimalniUzrast;
+
+    @Column(name = "MaksimalniUzrast", nullable = false)
+    private Integer maksimalniUzrast;
 
     protected Igrica() {
 
     }
 
     public Igrica(Kategorija kategorija, String naziv, String opis,
-                  String status, Integer uzrast) {
+                  String status, Integer minimalniUzrast, Integer maksimalniUzrast) {
         this.kategorija = kategorija;
         this.naziv = naziv;
         this.opis = opis;
         this.status = status;
-        this.uzrast = uzrast;
+        this.minimalniUzrast = minimalniUzrast;
+        this.maksimalniUzrast = maksimalniUzrast;
     }
 
     public Long getId() {
@@ -77,11 +80,19 @@ public class Igrica {
         this.status = status;
     }
 
-    public Integer getUzrast() {
-        return uzrast;
+    public Integer getMinimalniUzrast() {
+        return minimalniUzrast;
     }
 
-    public void setUzrast(Integer uzrast) {
-        this.uzrast = uzrast;
+    public void setMinimalniUzrast(Integer minimalniUzrast) {
+        this.minimalniUzrast = minimalniUzrast;
+    }
+
+    public Integer getMaksimalniUzrast() {
+        return maksimalniUzrast;
+    }
+
+    public void setMaksimalniUzrast(Integer maksimalniUzrast) {
+        this.maksimalniUzrast = maksimalniUzrast;
     }
 }

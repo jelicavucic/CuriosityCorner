@@ -41,6 +41,7 @@ public class IgricaService {
 
     @Transactional
     public IgricaResponse kreiraj(IgricaRequest request) {
+        provjeriUzrast(request);
         Kategorija kategorija = pronadjiKategoriju(request.idKategorije());
         String naziv = request.naziv().strip();
 
@@ -51,7 +52,8 @@ public class IgricaService {
                 naziv,
                 request.opis(),
                 request.status().strip(),
-                request.uzrast()
+                request.minimalniUzrast(),
+                request.maksimalniUzrast()
         );
 
         return uResponse(igricaRepository.saveAndFlush(igrica));
@@ -59,6 +61,7 @@ public class IgricaService {
 
     @Transactional
     public IgricaResponse izmijeni(Long id, IgricaRequest request) {
+        provjeriUzrast(request);
         Igrica igrica = pronadjiEntitet(id);
         Kategorija kategorija = pronadjiKategoriju(request.idKategorije());
         String naziv = request.naziv().strip();
@@ -69,7 +72,8 @@ public class IgricaService {
         igrica.setNaziv(naziv);
         igrica.setOpis(request.opis());
         igrica.setStatus(request.status().strip());
-        igrica.setUzrast(request.uzrast());
+        igrica.setMinimalniUzrast(request.minimalniUzrast());
+        igrica.setMaksimalniUzrast(request.maksimalniUzrast());
 
         return uResponse(igricaRepository.saveAndFlush(igrica));
     }
@@ -79,6 +83,15 @@ public class IgricaService {
         Igrica igrica = pronadjiEntitet(id);
         igricaRepository.delete(igrica);
         igricaRepository.flush();
+    }
+
+    private void provjeriUzrast(IgricaRequest request) {
+        if (request.minimalniUzrast() == null || request.maksimalniUzrast() == null
+                || request.minimalniUzrast() < 0
+                || request.maksimalniUzrast() < request.minimalniUzrast()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Uzrasti su obavezni i nenegativni; maksimalni ne smije biti manji od minimalnog.");
+        }
     }
 
     private Igrica pronadjiEntitet(Long id) {
@@ -115,7 +128,8 @@ public class IgricaService {
                 igrica.getNaziv(),
                 igrica.getOpis(),
                 igrica.getStatus(),
-                igrica.getUzrast()
+                igrica.getMinimalniUzrast(),
+                igrica.getMaksimalniUzrast()
         );
     }
 }

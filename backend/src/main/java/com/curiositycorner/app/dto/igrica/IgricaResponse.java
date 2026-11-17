@@ -6,6 +6,7 @@ public record IgricaResponse (
         String naziv,
         String opis,
         String status,
-        Integer uzrast
+        Integer minimalniUzrast,
+        Integer maksimalniUzrast
 ){
 }

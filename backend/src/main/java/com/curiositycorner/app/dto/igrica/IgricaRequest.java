@@ -22,8 +22,12 @@ public record IgricaRequest(
         @Size(max = 30, message = "Status smije imati najvise 30 znakova.")
         String status,
 
-        @NotNull(message = "Uzrast je obavezan.")
+        @NotNull(message = "Minimalni uzrast je obavezan.")
         @PositiveOrZero(message = "Uzrast ne smije biti negativan.")
-        Integer uzrast
+        Integer minimalniUzrast,
+
+        @NotNull(message = "Maksimalni uzrast je obavezan.")
+        @PositiveOrZero(message = "Uzrast ne smije biti negativan.")
+        Integer maksimalniUzrast
 ) {
 }
