@@ -73,6 +73,13 @@ Osnovna adresa: `http://localhost:8080`. Trenutno implementirane rute:
 | DELETE | `/api/avatari/{id}` |
 | GET | `/api/admin/aktivnosti/{id}/memorija` |
 | PUT | `/api/admin/aktivnosti/{id}/memorija` |
+| GET | `/api/admin/aktivnosti/{id}/spajanje` |
+| GET | `/api/admin/aktivnosti/{id}/spajanje/pregled` |
+| PUT | `/api/admin/aktivnosti/{id}/spajanje` |
+| GET | `/api/admin/aktivnosti/{id}/razvrstavanje` |
+| PUT | `/api/admin/aktivnosti/{id}/razvrstavanje` |
+| GET | `/api/admin/aktivnosti/{id}/pitanje` |
+| PUT | `/api/admin/aktivnosti/{id}/pitanje` |
 
 ## Autori
 
