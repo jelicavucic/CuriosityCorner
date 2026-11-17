@@ -6,6 +6,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AktivnostRepository extends JpaRepository<Aktivnost, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from Aktivnost a where a.id = :id")
+    java.util.Optional<Aktivnost> pronadjiZaIzmjenu(@Param("id") Long id);
+
     @Query("""
             select count(a) > 0 from Aktivnost a
             where a.nivo.id = :idNivoa and a.redniBroj = :redniBroj
