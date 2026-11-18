@@ -84,6 +84,8 @@ Osnovna adresa: `http://localhost:8080`. Trenutno implementirane rute:
 | PUT | `/api/admin/aktivnosti/{id}/slaganje-slova` |
 | GET | `/api/admin/aktivnosti/{id}/bajka` |
 | PUT | `/api/admin/aktivnosti/{id}/bajka` |
+| GET | `/api/admin/aktivnosti/{id}/osmosmjerka` |
+| PUT | `/api/admin/aktivnosti/{id}/osmosmjerka` |
 
 `GET /api/admin/aktivnosti/{id}/spajanje/pregled` vraća lijevu i desnu listu ID-eva sadržaja za pregled. Kad je uključen nasumičan raspored, desna lista se promiješa pri svakom pozivu.
 

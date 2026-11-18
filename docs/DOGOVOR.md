@@ -88,8 +88,12 @@ Nakon prvog pokušaja PUT vraća 409.
 | `spajanje` | `{"nasumicanRaspored":true,"parovi":[{"redniBroj":1,"idLijevogSadrzaja":2,"idDesnogSadrzaja":3}]}` |
 | `razvrstavanje` | `{"grupe":[{"naziv":"Voće","stavke":[{"idSadrzaja":2}]},{"naziv":"Povrće","stavke":[{"idSadrzaja":3}]}]}` |
 | `slaganje-slova` | `{"ciljniTekst":"PAS","putanjaSlike":"/api/fajlovi/1"}` |
-| `osmosmjerka` | `{"brojRedova":2,"brojKolona":3,"mreza":[["P","A","S"],["M","I","Š"]],"rijeci":[{"rijec":"PAS","pocetniRed":0,"pocetnaKolona":0,"krajnjiRed":0,"krajnjaKolona":2}]}` |
+| `osmosmjerka` | `{"brojRedova":3,"brojKolona":3,"mreza":[["P","A","S"],["M","A","Š"],["K","O","S"]],"rijeci":[{"rijec":"PAS","pocetniRed":0,"pocetnaKolona":0,"krajnjiRed":2,"krajnjaKolona":2}]}` |
 | `bajka` | `{"naslov":"Mali medo","tekst":"Jednom davno…","putanjaAudioZapisa":null,"putanjaNaslovneSlike":null}` |
+
+Koordinate osmosmjerke počinju od nule. Riječi mogu ići vodoravno, uspravno ili
+dijagonalno u oba smjera. Jedno polje može sadržati slovo ili dvoslov LJ, NJ ili DŽ.
+PUT zamjenjuje mrežu i riječi u istoj transakciji. Nakon prvog pokušaja vraća 409.
 
 ## API za igranje
 
