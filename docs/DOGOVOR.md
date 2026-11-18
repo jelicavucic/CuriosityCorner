@@ -1,8 +1,7 @@
 # Podjela rada i API primjeri
 
-Kratak prijedlog za četiri osobe. Imena i rokove dopisujemo zajedno.
-Trenutno je napisan CRUD kategorija; provjera s bazom još čeka.
-Ostali API-ji i JSON primjeri ispod su planirani.
+Prijedlog podjele rada za pet osoba. Imena i rokove dopisujemo zajedno.
+Implementirane rute su u [README-u](../README.md).
 
 ## Podjela rada
 
@@ -11,10 +10,11 @@ Ostali API-ji i JSON primjeri ispod su planirani.
 | Jelica | Zajednička osnova backenda; CRUD kategorija, igara, nivoa, aktivnosti, sadržaja i avatara; unos posebnih podataka zadataka; prijava administratora i jednostavan admin GUI. |
 | Osoba 2 | Pitanja, spajanje i razvrstavanje: mobilni ekrani, API za odgovore/poteze, provjera i čuvanje rezultata. |
 | Osoba 3 | Memorija i osmosmjerka: mobilni ekrani, API za poteze, provjera i čuvanje rezultata. |
-| Osoba 4 | Slaganje slova i bajke; korisnička prijava/profili i zajednički servis pokušaja i napretka. |
+| Osoba 4 | Slaganje slova i bajke: mobilni ekrani, API za igranje i čuvanje rezultata. |
+| Osoba 5 | Korisnička prijava i profili djece; zajednički servis pokušaja i napretka. |
 
 Za svaku igru odgovorna osoba radi i bodovanje, povezivanje s API-jem i testove.
-Sve igre koriste isti servis pokušaja koji priprema osoba 4.
+Sve igre koriste isti servis pokušaja koji priprema osoba 5.
 Osoba 2 dodatno radi korisničke recenzije, a Jelica admin odgovor.
 Osoba 3 dodatno povezuje mobilni izbor kategorija, igara i nivoa.
 Ovo je početna podjela: poslije prve funkcionalne igre provjeravamo obim i
