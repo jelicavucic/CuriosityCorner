@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -48,7 +49,7 @@ class SadrzajServiceTests {
     @Test
     void putZamjenjujeSvaPolja() {
         Sadrzaj postojeci = new Sadrzaj("Stari tekst", "/api/fajlovi/pas.png", "Pas");
-        when(repository.findById(1)).thenReturn(Optional.of(postojeci));
+        when(repository.pronadjiZaIzmjenu(List.of(1))).thenReturn(List.of(postojeci));
         when(repository.saveAndFlush(any())).thenAnswer(poziv -> poziv.getArgument(0));
         var rezultat = service.izmijeni(1, new SadrzajRequest("Novi tekst", null, null));
         assertEquals("Novi tekst", rezultat.tekst());
@@ -59,7 +60,7 @@ class SadrzajServiceTests {
     @Test
     void neispravnaIzmjenaNeMijenjaEntitet() {
         Sadrzaj postojeci = new Sadrzaj("Pas", null, null);
-        when(repository.findById(1)).thenReturn(Optional.of(postojeci));
+        when(repository.pronadjiZaIzmjenu(List.of(1))).thenReturn(List.of(postojeci));
         assertThrows(ApiException.class,
                 () -> service.izmijeni(1, new SadrzajRequest(null, null, null)));
         assertEquals("Pas", postojeci.getTekst());
@@ -72,6 +73,18 @@ class SadrzajServiceTests {
                 () -> service.pronadjiPoId(99)).getStatus());
         assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class,
                 () -> service.obrisi(99)).getStatus());
+    }
+
+    @Test
+    void odbijaZamjenuIliUklanjanjeSlikeKojuMemorijaKoristi() {
+        when(repository.koristiSeUMemoriji(1)).thenReturn(1);
+        for (String putanja : new String[]{null, "/api/fajlovi/macka.png"}) {
+            var postojeci = new Sadrzaj("Pas", "/api/fajlovi/pas.png", "Pas");
+            when(repository.pronadjiZaIzmjenu(List.of(1))).thenReturn(List.of(postojeci));
+            assertEquals(HttpStatus.CONFLICT, assertThrows(ApiException.class,
+                    () -> service.izmijeni(1, new SadrzajRequest("Pas", putanja, "Pas"))).getStatus());
+        }
+        verify(repository, never()).saveAndFlush(any());
     }
 
     @Test

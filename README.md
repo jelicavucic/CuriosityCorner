@@ -71,6 +71,27 @@ Osnovna adresa: `http://localhost:8080`. Trenutno implementirane rute:
 | POST | `/api/avatari` |
 | PUT | `/api/avatari/{id}` |
 | DELETE | `/api/avatari/{id}` |
+| GET | `/api/admin/aktivnosti/{id}/memorija` |
+| PUT | `/api/admin/aktivnosti/{id}/memorija` |
+| GET | `/api/admin/aktivnosti/{id}/spajanje` |
+| GET | `/api/admin/aktivnosti/{id}/spajanje/pregled` |
+| PUT | `/api/admin/aktivnosti/{id}/spajanje` |
+| GET | `/api/admin/aktivnosti/{id}/razvrstavanje` |
+| PUT | `/api/admin/aktivnosti/{id}/razvrstavanje` |
+| GET | `/api/admin/aktivnosti/{id}/pitanje` |
+| PUT | `/api/admin/aktivnosti/{id}/pitanje` |
+| GET | `/api/admin/aktivnosti/{id}/slaganje-slova` |
+| PUT | `/api/admin/aktivnosti/{id}/slaganje-slova` |
+| GET | `/api/admin/aktivnosti/{id}/bajka` |
+| PUT | `/api/admin/aktivnosti/{id}/bajka` |
+| GET | `/api/admin/aktivnosti/{id}/osmosmjerka` |
+| PUT | `/api/admin/aktivnosti/{id}/osmosmjerka` |
+
+`GET /api/admin/aktivnosti/{id}/spajanje/pregled` vraća lijevu i desnu listu ID-eva sadržaja za pregled. Kad je uključen nasumičan raspored, desna lista se promiješa pri svakom pozivu.
+
+## Podjela rada
+
+[Zaduženja za pet osoba i API primjeri](docs/DOGOVOR.md)
 
 ## Autori
 

@@ -1,8 +1,7 @@
 # Podjela rada i API primjeri
 
-Kratak prijedlog za četiri osobe. Imena i rokove dopisujemo zajedno.
-Trenutno je napisan CRUD kategorija; provjera s bazom još čeka.
-Ostali API-ji i JSON primjeri ispod su planirani.
+Prijedlog podjele rada za pet osoba. Imena i rokove dopisujemo zajedno.
+Implementirane rute su u [README-u](../README.md).
 
 ## Podjela rada
 
@@ -11,10 +10,11 @@ Ostali API-ji i JSON primjeri ispod su planirani.
 | Jelica | Zajednička osnova backenda; CRUD kategorija, igara, nivoa, aktivnosti, sadržaja i avatara; unos posebnih podataka zadataka; prijava administratora i jednostavan admin GUI. |
 | Osoba 2 | Pitanja, spajanje i razvrstavanje: mobilni ekrani, API za odgovore/poteze, provjera i čuvanje rezultata. |
 | Osoba 3 | Memorija i osmosmjerka: mobilni ekrani, API za poteze, provjera i čuvanje rezultata. |
-| Osoba 4 | Slaganje slova i bajke; korisnička prijava/profili i zajednički servis pokušaja i napretka. |
+| Osoba 4 | Slaganje slova i bajke: mobilni ekrani, API za igranje i čuvanje rezultata. |
+| Osoba 5 | Korisnička prijava i profili djece; zajednički servis pokušaja i napretka. |
 
 Za svaku igru odgovorna osoba radi i bodovanje, povezivanje s API-jem i testove.
-Sve igre koriste isti servis pokušaja koji priprema osoba 4.
+Sve igre koriste isti servis pokušaja koji priprema osoba 5.
 Osoba 2 dodatno radi korisničke recenzije, a Jelica admin odgovor.
 Osoba 3 dodatno povezuje mobilni izbor kategorija, igara i nivoa.
 Ovo je početna podjela: poslije prve funkcionalne igre provjeravamo obim i
@@ -65,15 +65,35 @@ Za svaku konfiguraciju koristimo GET i PUT
 Tekstovi i slike prvo se unose kao `sadrzaji`, pa se ovdje šalju njihovi ID-evi.
 Ovo su admin podaci: mobilni API ne smije otkrivati rješenja.
 
+Za memoriju se šalje jedan sadržaj po paru. Backend od njega pravi dvije kartice
+s istom slikom. Dok memorija koristi sadržaj, promjena ili uklanjanje njegove
+slike kroz API za sadržaje vraća 409. Prije prvog pokušaja admin može odabrati
+novi sadržaj u konfiguraciji memorije. Nakon prvog pokušaja za izmjene se pravi
+nova aktivnost.
+
+Za spajanje admin GET vraća konfiguraciju po rednom broju para. GET
+`/api/admin/aktivnosti/{id}/spajanje/pregled` vraća dvije liste ID-eva sadržaja.
+Kad je uključen nasumičan raspored, pregled promiješa desnu listu pri svakom
+dohvatu. Sačuvani parovi i njihov redoslijed ostaju isti.
+
+Za razvrstavanje svaka grupa ima naziv i najmanje jednu stavku. Isti sadržaj
+može se koristiti jednom po aktivnosti. PUT prije prvog pokušaja zamjenjuje
+grupe i stavke u jednoj transakciji. GET vraća ID-eve grupa, stavki i sadržaja.
+Nakon prvog pokušaja PUT vraća 409.
+
 | Tip u putanji | Primjer tijela PUT zahtjeva |
 | --- | --- |
 | `pitanje` | `{"idSadrzaja":1,"objasnjenje":"Pas je životinja.","odgovori":[{"idSadrzaja":2,"redniBroj":1,"jeTacan":true},{"idSadrzaja":3,"redniBroj":2,"jeTacan":false}]}` |
-| `memorija` | `{"brojKolona":2,"vrijemeZaRjesavanje":60,"kartice":[{"brojPara":1,"idSadrzaja":2},{"brojPara":1,"idSadrzaja":2}]}` |
+| `memorija` | `{"brojKolona":2,"vrijemeZaRjesavanje":60,"idSadrzajaParova":[2,3]}` |
 | `spajanje` | `{"nasumicanRaspored":true,"parovi":[{"redniBroj":1,"idLijevogSadrzaja":2,"idDesnogSadrzaja":3}]}` |
-| `razvrstavanje` | `{"grupe":[{"naziv":"Životinje","stavke":[{"idSadrzaja":2}]}]}` |
+| `razvrstavanje` | `{"grupe":[{"naziv":"Voće","stavke":[{"idSadrzaja":2}]},{"naziv":"Povrće","stavke":[{"idSadrzaja":3}]}]}` |
 | `slaganje-slova` | `{"ciljniTekst":"PAS","putanjaSlike":"/api/fajlovi/1"}` |
-| `osmosmjerka` | `{"brojRedova":2,"brojKolona":3,"mreza":[["P","A","S"],["M","I","Š"]],"rijeci":[{"rijec":"PAS","pocetniRed":0,"pocetnaKolona":0,"krajnjiRed":0,"krajnjaKolona":2}]}` |
+| `osmosmjerka` | `{"brojRedova":3,"brojKolona":3,"mreza":[["P","A","S"],["M","A","Š"],["K","O","S"]],"rijeci":[{"rijec":"PAS","pocetniRed":0,"pocetnaKolona":0,"krajnjiRed":2,"krajnjaKolona":2}]}` |
 | `bajka` | `{"naslov":"Mali medo","tekst":"Jednom davno…","putanjaAudioZapisa":null,"putanjaNaslovneSlike":null}` |
+
+Koordinate osmosmjerke počinju od nule. Riječi mogu ići vodoravno, uspravno ili
+dijagonalno u oba smjera. Jedno polje može sadržati slovo ili dvoslov LJ, NJ ili DŽ.
+PUT zamjenjuje mrežu i riječi u istoj transakciji. Nakon prvog pokušaja vraća 409.
 
 ## API za igranje
 

@@ -74,12 +74,16 @@ public class AktivnostService {
 
     @Transactional
     public void obrisi(Long id) {
-        Aktivnost aktivnost = pronadjiEntitet(id);
+        Aktivnost aktivnost = repository.pronadjiZaIzmjenu(id).orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND, "Aktivnost " + id + " ne postoji."));
         if (repository.brojPokusaja(id) > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Aktivnost ima pokusaje rjesavanja i ne moze se obrisati.");
         }
 
+        if ("razvrstavanje".equalsIgnoreCase(aktivnost.getTip().getOznaka())) {
+            repository.obrisiStavkeRazvrstavanja(id);
+        }
         repository.delete(aktivnost);
         repository.flush();
     }
