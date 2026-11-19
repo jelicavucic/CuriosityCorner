@@ -86,8 +86,42 @@ Osnovna adresa: `http://localhost:8080`. Trenutno implementirane rute:
 | PUT | `/api/admin/aktivnosti/{id}/bajka` |
 | GET | `/api/admin/aktivnosti/{id}/osmosmjerka` |
 | PUT | `/api/admin/aktivnosti/{id}/osmosmjerka` |
+| GET | `/api/admin/auth/csrf` |
+| POST | `/api/admin/auth/login` |
+| GET | `/api/admin/auth/me` |
+| POST | `/api/admin/auth/logout` |
 
 `GET /api/admin/aktivnosti/{id}/spajanje/pregled` vraća lijevu i desnu listu ID-eva sadržaja za pregled. Kad je uključen nasumičan raspored, desna lista se promiješa pri svakom pozivu.
+
+## Admin prijava
+
+Za kreiranje admin naloga, u CMD-u prije pokretanja backenda postavi ove
+varijable i zamijeni primjere svojim podacima. Lozinka treba imati najmanje
+12 znakova i stati u 72 UTF-8 bajta.
+
+```cmd
+set "ADMIN_BOOTSTRAP_USERNAME=admin"
+set "ADMIN_BOOTSTRAP_NAME=Administrator"
+set "ADMIN_BOOTSTRAP_EMAIL=admin@example.com"
+set "ADMIN_BOOTSTRAP_PASSWORD=upisi_svoju_lozinku"
+mvnw.cmd spring-boot:run
+```
+
+Pri pokretanju se za novo korisničko ime u bazi sačuva BCrypt hash. Ako ime
+već postoji, koristi se postojeća lozinka. Za sljedeće pokretanje možeš
+ukloniti varijable `ADMIN_BOOTSTRAP_*` iz terminala.
+
+1. Pozovi `GET /api/admin/auth/csrf` i sačuvaj kolačić sesije. Odgovor sadrži
+   `headerName` i `token`.
+2. Pozovi `POST /api/admin/auth/login` s tim zaglavljem i JSON podacima
+   `{"korisnickoIme":"admin","lozinka":"tvoja_lozinka"}`.
+3. Zadrži novi kolačić sesije i ponovo pozovi `GET /api/admin/auth/csrf`.
+   Koristi novi token za izmjene i odjavu. `GET /api/admin/auth/me` vraća
+   podatke prijavljenog admina.
+
+Admin sesija je obavezna za čitanje konfiguracija aktivnosti i za upis,
+izmjenu ili brisanje kroz postojeće CRUD rute. GET liste i pojedinačni
+zapisi na osnovnim rutama dostupni su mobilnoj aplikaciji.
 
 ## Podjela rada
 
