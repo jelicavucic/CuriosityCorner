@@ -534,17 +534,17 @@ CREATE TABLE IF NOT EXISTS `curiosity_corner`.`recenzija` (
   `Komentar` VARCHAR(3000) NOT NULL,
   `DatumKreiranja` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `DatumIzmjene` DATETIME(3) NULL DEFAULT NULL,
-  `korisnik_idKorisnika` INT UNSIGNED NOT NULL,
+  `idKorisnika` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`IdRecenzije`),
   INDEX `FK_RECENZIJA_IGRICA` (`IdIgrice` ASC) VISIBLE,
-  INDEX `fk_recenzija_korisnik1_idx` (`korisnik_idKorisnika` ASC) VISIBLE,
+  INDEX `fk_recenzija_korisnik1_idx` (`idKorisnika` ASC) VISIBLE,
   CONSTRAINT `FK_RECENZIJA_IGRICA`
     FOREIGN KEY (`IdIgrice`)
     REFERENCES `curiosity_corner`.`igrica` (`IdIgrice`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
   CONSTRAINT `fk_recenzija_korisnik1`
-    FOREIGN KEY (`korisnik_idKorisnika`)
+    FOREIGN KEY (`idKorisnika`)
     REFERENCES `curiosity_corner`.`korisnik` (`idKorisnika`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)

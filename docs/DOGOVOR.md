@@ -30,7 +30,7 @@ PATCH mijenja dio zapisa, DELETE briše. Operacije unosa sadržaja su za admina.
 | Kategorije, igre, nivoi, aktivnosti, sadržaj, avatari | GET i POST `/{resurs}`; GET, PUT i DELETE `/{resurs}/{id}` |
 | Nazivi resursa | `kategorije`, `igrice`, `nivoi`, `aktivnosti`, `sadrzaji`, `avatari` |
 | Tipovi aktivnosti | GET `/tipovi-aktivnosti` |
-| Prijava administratora | POST `/admin/auth/login`, POST `/admin/auth/logout`, GET `/admin/auth/me` |
+| Prijava administratora | GET `/admin/auth/csrf`, POST `/admin/auth/login`, POST `/admin/auth/logout`, GET `/admin/auth/me` |
 | Korisnički nalog | POST `/auth/register`, POST `/auth/login`, POST `/auth/logout`, GET `/auth/me` |
 | Profili djece | GET i POST `/igraci`; GET, PUT i DELETE `/igraci/{id}` |
 | Izbor avatara | PATCH `/igraci/{id}/avatar` |
