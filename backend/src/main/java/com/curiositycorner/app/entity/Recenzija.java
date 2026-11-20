@@ -14,7 +14,7 @@ public class Recenzija {
     @Column(name = "IdIgrice", nullable = false)
     private Long idIgrice;
 
-    @Column(name = "korisnik_idKorisnika", nullable = false)
+    @Column(name = "idKorisnika", nullable = false)
     private Long idKorisnika;
 
     @Column(name = "Ocjena", nullable = false)

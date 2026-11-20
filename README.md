@@ -32,6 +32,50 @@ npm start
 ```
 Za web verziju: `npm run web`. Zaustavljanje: `Ctrl + C`.
 
+## Postojeća lokalna MySQL baza
+
+Ako već imaš bazu, `git pull` ažurira fajlove projekta. Postojeće tabele
+treba posebno uskladiti jer `CREATE TABLE IF NOT EXISTS` kreira samo one koje
+nedostaju. Nova baza napravljena iz trenutnog `database/schema.sql` već ima
+kolone navedene ispod.
+
+U MySQL Workbenchu provjeri strukturu i broj zapisa:
+
+```sql
+SHOW COLUMNS FROM curiosity_corner.administrator;
+SHOW COLUMNS FROM curiosity_corner.recenzija;
+SELECT COUNT(*) AS broj_admina FROM curiosity_corner.administrator;
+SELECT COUNT(*) AS broj_recenzija FROM curiosity_corner.recenzija;
+```
+
+Ako je tabela `administrator` prazna i nedostaje joj `LozinkaHash`, pokreni:
+
+```sql
+ALTER TABLE curiosity_corner.administrator
+ADD COLUMN LozinkaHash VARCHAR(255) NOT NULL;
+```
+
+Ako tabela `recenzija` ima kolonu `korisnik_idKorisnika`, a nema
+`idKorisnika`, preimenuj kolonu:
+
+```sql
+ALTER TABLE curiosity_corner.recenzija
+RENAME COLUMN korisnik_idKorisnika TO idKorisnika;
+```
+
+Ako je `recenzija` prazna i ima samo staru vezu `IdIgraca`, za admin pregled dodaj:
+
+```sql
+ALTER TABLE curiosity_corner.recenzija
+ADD COLUMN idKorisnika INT UNSIGNED NOT NULL;
+```
+
+U staroj bazi s obaveznim `IdIgraca` prije korisničkog upisa recenzija treba
+uskladiti tu vezu i strani ključ prema `korisnik.idKorisnika`. Ako tabela
+već ima recenzije vezane za igrače, prvo treba utvrditi koji korisnički
+nalog pripada svakom igraču. Ako postoje admin nalozi bez kolone za hash,
+potrebno je dogovoriti postavljanje novih lozinki za te naloge.
+
 ## API
 
 Osnovna adresa: `http://localhost:8080`. Trenutno implementirane rute:
@@ -130,6 +174,11 @@ Admin pregled recenzija vraća ocjenu, komentar i postojeći odgovor ili
 `null`. Za upis ili izmjenu odgovora pošalji
 `{"tekstOdgovora":"Hvala na povratnoj informaciji!"}`. ID u putanji je ID
 recenzije. PUT i DELETE traže CSRF token.
+
+Za provjeru lokalnog backenda, nakon prijave pozovi
+`GET /api/admin/recenzije` s istim kolačićem sesije. Status `200` i
+odgovor `[]` očekivani su kad u bazi još nema recenzija. Bez prijave ta
+ruta vraća `401`.
 
 ## Podjela rada
 
