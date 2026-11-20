@@ -90,6 +90,9 @@ Osnovna adresa: `http://localhost:8080`. Trenutno implementirane rute:
 | POST | `/api/admin/auth/login` |
 | GET | `/api/admin/auth/me` |
 | POST | `/api/admin/auth/logout` |
+| GET | `/api/admin/recenzije` |
+| PUT | `/api/admin/recenzije/{id}/odgovor` |
+| DELETE | `/api/admin/recenzije/{id}/odgovor` |
 
 `GET /api/admin/aktivnosti/{id}/spajanje/pregled` vraća lijevu i desnu listu ID-eva sadržaja za pregled. Kad je uključen nasumičan raspored, desna lista se promiješa pri svakom pozivu.
 
@@ -122,6 +125,11 @@ ukloniti varijable `ADMIN_BOOTSTRAP_*` iz terminala.
 Admin sesija je obavezna za čitanje konfiguracija aktivnosti i za upis,
 izmjenu ili brisanje kroz postojeće CRUD rute. GET liste i pojedinačni
 zapisi na osnovnim rutama dostupni su mobilnoj aplikaciji.
+
+Admin pregled recenzija vraća ocjenu, komentar i postojeći odgovor ili
+`null`. Za upis ili izmjenu odgovora pošalji
+`{"tekstOdgovora":"Hvala na povratnoj informaciji!"}`. ID u putanji je ID
+recenzije. PUT i DELETE traže CSRF token.
 
 ## Podjela rada
 
