@@ -1,6 +1,6 @@
 import { useState, type RefObject } from 'react';
-import { Ellipsis, Layers, ListChecks, Plus, Search } from 'lucide-react';
-import { izgledZaIgricu, oznakaStatusa, type Igrica } from './igrice';
+import { Layers, ListChecks, Plus, Search } from 'lucide-react';
+import { izgledZaIgricu, oznakaStatusa, OpcijeZapisa, type Igrica } from './igrice';
 import type { Kategorija } from './kategorije';
 import type { Nivo } from './nivoi';
 
@@ -18,7 +18,8 @@ type PregledIgricaProps = {
   porukaIgrice: string;
   porukaNivoa: string;
   onNovaIgrica: () => void;
-  onDodajNivo: (igrica: Igrica) => void;
+  onUredi: (igrica: Igrica) => void;
+  onObrisi: (igrica: Igrica) => void;
 };
 
 function tekstPretrage(tekst: string) {
@@ -27,10 +28,9 @@ function tekstPretrage(tekst: string) {
 
 export function PregledIgrica({
   naslovPrikaza, igrice, kategorije, nivoi, aktivnosti, stanje, filterKategorije, filterPotkategorije,
-  porukaIgrice, porukaNivoa, onNovaIgrica, onDodajNivo,
+  porukaIgrice, porukaNivoa, onNovaIgrica, onUredi, onObrisi,
 }: PregledIgricaProps) {
   const [pretraga, setPretraga] = useState('');
-  const [otvoreneOpcije, setOtvoreneOpcije] = useState<number | null>(null);
   const kategorijePoId = new Map(kategorije?.map((kategorija) => [kategorija.id, kategorija]));
   const potkategorija = filterPotkategorije === null ? undefined : kategorijePoId.get(filterPotkategorije);
   const idGlavne = potkategorija?.idNadkategorije ?? filterKategorije;
@@ -116,35 +116,14 @@ export function PregledIgrica({
         const nadkategorija = kategorija?.idNadkategorije == null
           ? undefined : kategorijePoId.get(kategorija.idNadkategorije);
         const { Ikona, boja } = izgledZaIgricu(igrica.naziv);
-        const opcijeOtvorene = otvoreneOpcije === igrica.id;
+        const detalji = new URLSearchParams(window.location.hash.split('?')[1]);
+        detalji.set('igrica', String(igrica.id));
 
         return <li className={`igrica-kartica igrica-kartica--${boja}`} key={igrica.id}>
-          <div className="kategorija-opcije" onBlur={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget)) setOtvoreneOpcije(null);
-          }} onKeyDown={(event) => {
-            if (event.key === 'Escape' && opcijeOtvorene) {
-              event.currentTarget.querySelector('button')?.focus();
-              setOtvoreneOpcije(null);
-            }
-          }}>
-            <button type="button" className="kategorija-opcije-dugme"
-              aria-label={`Opcije za igricu ${igrica.naziv}`} aria-expanded={opcijeOtvorene}
-              onClick={(event) => {
-                event.currentTarget.focus();
-                setOtvoreneOpcije(opcijeOtvorene ? null : igrica.id);
-              }}>
-              <Ellipsis size={20} aria-hidden="true" />
-            </button>
-            {opcijeOtvorene && <div className="kategorija-opcije-panel">
-              <button type="button" aria-haspopup="dialog" onClick={(event) => {
-                event.currentTarget.closest('.kategorija-opcije')?.querySelector('button')?.focus();
-                setOtvoreneOpcije(null);
-                onDodajNivo(igrica);
-              }}><Plus size={16} aria-hidden="true" /> Dodaj nivo</button>
-            </div>}
-          </div>
+          <OpcijeZapisa oznaka={`Opcije za igricu ${igrica.naziv}`}
+            onUredi={() => onUredi(igrica)} onObrisi={() => onObrisi(igrica)} />
           <div className="igrica-ilustracija"><Ikona size={38} aria-hidden="true" /></div>
-          <h2>{igrica.naziv}</h2>
+          <h2><a className="igrica-detalji-link" href={`#igrice?${detalji}`}>{igrica.naziv}</a></h2>
           <div className="igrica-oznake">
             {nadkategorija && <span>{nadkategorija.naziv}</span>}
             {kategorija && <span className={nadkategorija ? 'igrica-oznaka-potkategorije' : undefined}>{kategorija.naziv}</span>}

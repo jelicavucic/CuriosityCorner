@@ -1,5 +1,5 @@
-import { useState, type FormEvent, type RefObject } from 'react';
-import { Blocks, Calculator, Gamepad2, Shapes, Trophy } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react';
+import { Blocks, Calculator, Ellipsis, Gamepad2, Pencil, Shapes, Trash2, Trophy } from 'lucide-react';
 import { posaljiAdminZahtjev } from './auth';
 import type { Kategorija } from './kategorije';
 
@@ -27,6 +27,98 @@ export function izgledZaIgricu(naziv: string) {
 export function oznakaStatusa(status: string) {
   return status === 'NACRT' ? 'Nacrt' : status === 'AKTIVNA' ? 'Aktivna'
     : status === 'NEAKTIVNA' ? 'Neaktivna' : status;
+}
+
+export function OpcijeZapisa({ oznaka, onUredi, onObrisi }: {
+  oznaka: string;
+  onUredi: () => void;
+  onObrisi: () => void;
+}) {
+  const [otvoreno, setOtvoreno] = useState(false);
+  const dugme = useRef<HTMLButtonElement>(null);
+
+  function pokreni(akcija: () => void) {
+    dugme.current?.focus();
+    setOtvoreno(false);
+    akcija();
+  }
+
+  return <div className="kategorija-opcije" onBlur={(event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) setOtvoreno(false);
+  }} onKeyDown={(event) => {
+    if (event.key === 'Escape' && otvoreno) {
+      dugme.current?.focus();
+      setOtvoreno(false);
+    }
+  }}>
+    <button ref={dugme} type="button" className="kategorija-opcije-dugme"
+      aria-label={oznaka} aria-expanded={otvoreno}
+      onClick={(event) => {
+        event.currentTarget.focus();
+        setOtvoreno(!otvoreno);
+      }}><Ellipsis size={20} aria-hidden="true" /></button>
+    {otvoreno && <div className="kategorija-opcije-panel">
+      <button type="button" aria-haspopup="dialog" onClick={() => pokreni(onUredi)}>
+        <Pencil size={16} aria-hidden="true" /> Uredi
+      </button>
+      <button type="button" aria-haspopup="dialog" className="kategorija-opcije-obrisi" onClick={() => pokreni(onObrisi)}>
+        <Trash2 size={16} aria-hidden="true" /> Obriši
+      </button>
+    </div>}
+  </div>;
+}
+
+export function ObrisiIgricu({ igrica, onObrisana, onZatvori }: {
+  igrica: Igrica;
+  onObrisana: (id: number) => void;
+  onZatvori: () => void;
+}) {
+  const dijalog = useRef<HTMLDialogElement>(null);
+  const [salje, setSalje] = useState(false);
+  const [greska, setGreska] = useState('');
+
+  useEffect(() => {
+    if (!dijalog.current?.open) dijalog.current?.showModal();
+  }, []);
+
+  async function potvrdi(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (salje) return;
+    setGreska('');
+    setSalje(true);
+    try {
+      const odgovor = await posaljiAdminZahtjev('DELETE', `/api/igrice/${igrica.id}`);
+      if (odgovor.status === 409) {
+        throw new Error('Igricu nije moguće obrisati dok ima povezane nivoe, pokušaje igranja ili recenzije.');
+      }
+      if (!odgovor.ok) {
+        const problem: { detail?: string } | null = await odgovor.json().catch(() => null);
+        throw new Error(problem?.detail || 'Brisanje igrice nije uspjelo.');
+      }
+      dijalog.current?.close();
+      onObrisana(igrica.id);
+    } catch (error) {
+      setGreska(error instanceof Error ? error.message : 'Brisanje igrice nije uspjelo.');
+    } finally {
+      setSalje(false);
+    }
+  }
+
+  return <dialog ref={dijalog} className="admin-dijalog" aria-label="Obriši igricu"
+    onClose={onZatvori} onCancel={(event) => { if (salje) event.preventDefault(); }}>
+    <h2>Obriši igricu</h2>
+    <form onSubmit={potvrdi}>
+      <p>Želiš li obrisati igricu „{igrica.naziv}”?</p>
+      {greska && <p className="error" role="alert">{greska}</p>}
+      <div className="nova-igrica-akcije">
+        <button type="button" className="secondary" autoFocus disabled={salje}
+          onClick={() => dijalog.current?.close()}>Otkaži</button>
+        <button type="submit" className="primary opasna-akcija" disabled={salje}>
+          {salje ? 'Brisanje…' : 'Obriši'}
+        </button>
+      </div>
+    </form>
+  </dialog>;
 }
 
 type NovaIgricaProps = {

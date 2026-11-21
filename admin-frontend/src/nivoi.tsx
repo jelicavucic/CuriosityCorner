@@ -1,19 +1,33 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { posaljiAdminPost } from './auth';
+import { posaljiAdminZahtjev } from './auth';
 
-export type Nivo = { id: number; idIgrice: number; naziv: string; redniBroj: number };
+export type Nivo = {
+  id: number;
+  idIgrice: number;
+  naziv: string;
+  redniBroj: number;
+  bodoviZaOtkljucavanje: number;
+};
 
-type DodajNivoProps = {
+export type AkcijaNivoa = { vrsta: 'dodaj' } | { vrsta: 'uredi' | 'obrisi'; nivo: Nivo };
+
+type NivoDijalogProps = {
+  akcija: AkcijaNivoa;
   idIgrice: number;
   nazivIgrice: string;
   onSacuvan: (nivo: Nivo) => void;
+  onObrisan: (nivo: Nivo) => void;
   onZatvori: () => void;
 };
 
-export function DodajNivo({ idIgrice, nazivIgrice, onSacuvan, onZatvori }: DodajNivoProps) {
+export function NivoDijalog({ akcija, idIgrice, nazivIgrice, onSacuvan, onObrisan, onZatvori }: NivoDijalogProps) {
   const dijalog = useRef<HTMLDialogElement>(null);
   const [salje, setSalje] = useState(false);
   const [greska, setGreska] = useState('');
+  const nivo = akcija.vrsta === 'dodaj' ? null : akcija.nivo;
+  const brise = akcija.vrsta === 'obrisi';
+  const naslov = brise ? 'Obriši nivo' : nivo ? 'Uredi nivo' : 'Dodaj nivo';
+  const porukaGreske = brise ? 'Brisanje nivoa nije uspjelo.' : 'Čuvanje nivoa nije uspjelo.';
 
   useEffect(() => {
     dijalog.current?.showModal();
@@ -26,7 +40,7 @@ export function DodajNivo({ idIgrice, nazivIgrice, onSacuvan, onZatvori }: Dodaj
     const podaci = new FormData(event.currentTarget);
     const naziv = String(podaci.get('naziv') ?? '').trim();
 
-    if (!naziv) {
+    if (!brise && !naziv) {
       setGreska('Unesite naziv nivoa.');
       return;
     }
@@ -34,7 +48,9 @@ export function DodajNivo({ idIgrice, nazivIgrice, onSacuvan, onZatvori }: Dodaj
     setGreska('');
     setSalje(true);
     try {
-      const odgovor = await posaljiAdminPost('/api/nivoi', {
+      const putanja = nivo ? `/api/nivoi/${nivo.id}` : '/api/nivoi';
+      const odgovor = brise ? await posaljiAdminZahtjev('DELETE', putanja)
+        : await posaljiAdminZahtjev(nivo ? 'PUT' : 'POST', putanja, {
         idIgrice,
         naziv,
         redniBroj: Number(podaci.get('redniBroj')),
@@ -43,20 +59,23 @@ export function DodajNivo({ idIgrice, nazivIgrice, onSacuvan, onZatvori }: Dodaj
       if (odgovor.status === 401 || odgovor.status === 403) {
         throw new Error('Provjerite administratorsku sesiju pa pokušajte ponovo.');
       }
+      if (brise && odgovor.status === 409) {
+        throw new Error('Nivo nije moguće obrisati dok ima povezane aktivnosti ili pokušaje igranja.');
+      }
       if (!odgovor.ok) {
         const problem: { detail?: string; greske?: Record<string, string> } | null =
           await odgovor.json().catch(() => null);
         const greskePolja = Object.values(problem?.greske ?? {}).join(' ');
         throw new Error(
-          greskePolja || problem?.detail || 'Čuvanje nivoa nije uspjelo.',
+          greskePolja || problem?.detail || porukaGreske,
         );
       }
 
-      const nivo: Nivo = await odgovor.json();
+      if (akcija.vrsta === 'obrisi') onObrisan(akcija.nivo);
+      else onSacuvan(await odgovor.json());
       dijalog.current?.close();
-      onSacuvan(nivo);
     } catch (error) {
-      setGreska(error instanceof Error ? error.message : 'Čuvanje nivoa nije uspjelo.');
+      setGreska(error instanceof Error ? error.message : porukaGreske);
     } finally {
       setSalje(false);
     }
@@ -71,9 +90,10 @@ export function DodajNivo({ idIgrice, nazivIgrice, onSacuvan, onZatvori }: Dodaj
       onCancel={(event) => { if (salje) event.preventDefault(); }}
       onClose={onZatvori}
     >
-      <h2 id="dodaj-nivo-naslov">Dodaj nivo</h2>
+      <h2 id="dodaj-nivo-naslov">{naslov}</h2>
       <p id="dodaj-nivo-igrica">Igrica: <strong>{nazivIgrice}</strong></p>
       <form onSubmit={sacuvaj}>
+        {brise ? <p>Želiš li obrisati nivo „{nivo?.naziv}”?</p> : <>
         <label htmlFor="nivo-redni-broj">Redni broj</label>
         <input
           id="nivo-redni-broj"
@@ -82,11 +102,12 @@ export function DodajNivo({ idIgrice, nazivIgrice, onSacuvan, onZatvori }: Dodaj
           min={1}
           max={2147483647}
           step={1}
+          defaultValue={nivo?.redniBroj}
           required
         />
 
         <label htmlFor="nivo-naziv">Naziv nivoa</label>
-        <input id="nivo-naziv" name="naziv" maxLength={150} required />
+        <input id="nivo-naziv" name="naziv" defaultValue={nivo?.naziv} maxLength={150} required />
 
         <label htmlFor="nivo-bodovi">Bodovi za otključavanje</label>
         <input
@@ -96,15 +117,16 @@ export function DodajNivo({ idIgrice, nazivIgrice, onSacuvan, onZatvori }: Dodaj
           min={0}
           max={2147483647}
           step={1}
-          defaultValue={0}
+          defaultValue={nivo?.bodoviZaOtkljucavanje ?? 0}
           required
         />
+        </>}
 
         {greska && <p className="error" role="alert">{greska}</p>}
         <div className="nova-igrica-akcije">
-          <button type="button" className="secondary" disabled={salje} onClick={() => dijalog.current?.close()}>Otkaži</button>
-          <button type="submit" className="primary" disabled={salje}>
-            {salje ? 'Čuvanje…' : 'Sačuvaj nivo'}
+          <button type="button" className="secondary" autoFocus={brise} disabled={salje} onClick={() => dijalog.current?.close()}>Otkaži</button>
+          <button type="submit" className={brise ? 'primary opasna-akcija' : 'primary'} disabled={salje}>
+            {brise ? (salje ? 'Brisanje…' : 'Obriši nivo') : (salje ? 'Čuvanje…' : 'Sačuvaj nivo')}
           </button>
         </div>
       </form>

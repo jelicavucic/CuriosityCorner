@@ -28,12 +28,13 @@ export async function posaljiAdminZahtjev(metoda: 'POST' | 'PUT' | 'DELETE', put
   if (!response.ok) throw new Error('Backend nije dostupan. Pokušajte ponovo.');
 
   const { headerName, token }: Csrf = await response.json();
+  const multipart = body instanceof FormData;
   return authRequest(putanja, {
     method: metoda,
-    headers: body
+    headers: body && !multipart
       ? { [headerName]: token, 'Content-Type': 'application/json' }
       : { [headerName]: token },
-    body: body ? JSON.stringify(body) : undefined,
+    body: multipart ? body : body ? JSON.stringify(body) : undefined,
   });
 }
 
