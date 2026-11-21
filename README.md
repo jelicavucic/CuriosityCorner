@@ -1,4 +1,4 @@
-﻿# CuriosityCorner
+# CuriosityCorner
 
 ## Tehnologije
 
@@ -31,7 +31,6 @@ npm install
 npm start
 ```
 Za web verziju: `npm run web`. Zaustavljanje: `Ctrl + C`.
-
 
 ## API
 
@@ -95,6 +94,7 @@ Osnovna adresa: `http://localhost:8080`. Trenutno implementirane rute:
 | PUT | `/api/admin/recenzije/{id}/odgovor` |
 | DELETE | `/api/admin/recenzije/{id}/odgovor` |
 
+`GET /api/admin/aktivnosti/{id}/spajanje/pregled` vraća lijevu i desnu listu ID-eva sadržaja za pregled. Kad je uključen nasumičan raspored, desna lista se promiješa pri svakom pozivu.
 
 ## Podjela rada
 
