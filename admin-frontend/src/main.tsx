@@ -1,8 +1,12 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { odjaviSe, prijaviSe, provjeriSesiju, type Administrator } from './auth';
 import { CalendarDays, Eye, EyeOff, Gamepad2, Layers, LockKeyhole, LogIn, MessageSquareMore, UserRound } from 'lucide-react';
 import './style.css';
+import { NovaIgrica, type Igrica } from './igrice';
+import { Kategorije, type Kategorija } from './kategorije';
+import { DodajNivo, type Nivo } from './nivoi';
+import { PregledIgrica } from './pregled-igrica';
 
 function Brend() {
   return <div className="brand"><img src="/logo-mark.png" alt="" />CuriosityCorner</div>;
@@ -10,10 +14,27 @@ function Brend() {
 
 function App() {
   const [admin, setAdmin] = useState<Administrator | null>(null);
-  const [brojKategorija, setBrojKategorija] = useState<number | null>(null);
-  const [brojIgrica, setBrojIgrica] = useState<number | null>(null);
-  const [brojNivoa, setBrojNivoa] = useState<number | null>(null);
-  const [brojAktivnosti, setBrojAktivnosti] = useState<number | null>(null);
+  const [adresa, setAdresa] = useState(() => window.location.hash);
+  const [ruta, upit] = adresa.slice(1).split('?');
+  const prikaz = ruta === 'igrice' || ruta === 'kategorije' ? ruta : 'pregled';
+  const parametri = new URLSearchParams(upit);
+  const idKategorije = Number(parametri.get('kategorija'));
+  const idOtvoreneKategorije = prikaz === 'kategorije' ? idKategorije : 0;
+  const idPotkategorije = Number(parametri.get('potkategorija'));
+  const filterPotkategorije = prikaz === 'igrice' && Number.isSafeInteger(idPotkategorije) && idPotkategorije > 0
+    ? idPotkategorije : null;
+  const naslovPrikaza = useRef<HTMLHeadingElement>(null);
+  const [kategorije, setKategorije] = useState<Kategorija[] | null>(null);
+  const [greskaKategorija, setGreskaKategorija] = useState(false);
+  const [igrice, setIgrice] = useState<Igrica[]>([]);
+  const [stanjeIgrica, setStanjeIgrica] = useState<'ucitavanje' | 'ucitano' | 'greska'>('ucitavanje');
+  const [kreiranaIgrica, setKreiranaIgrica] = useState('');
+  const dijalogIgrice = useRef<HTMLDialogElement>(null);
+  const [nivoi, setNivoe] = useState<Nivo[]>([]);
+  const [stanjeNivoa, setStanjeNivoa] = useState<'ucitavanje' | 'ucitano' | 'greska'>('ucitavanje');
+  const [igricaZaNivo, setIgricaZaNivo] = useState<Igrica | null>(null);
+  const [porukaNivoa, setPorukaNivoa] = useState('');
+  const [aktivnosti, setAktivnosti] = useState<{ idNivoa: number }[] | null>(null);
   const [brojAvatara, setBrojAvatara] = useState<number | null>(null);
   const [brojRecenzija, setBrojRecenzija] = useState<number | null>(null);
   const [provjera, setProvjera] = useState(true);
@@ -22,6 +43,18 @@ function App() {
   const [greska, setGreska] = useState('');
   const [salje, setSalje] = useState(false);
   const [prikaziLozinku, setPrikaziLozinku] = useState(false);
+
+  useEffect(() => {
+    function promijeniPrikaz() {
+      setAdresa(window.location.hash);
+    }
+    window.addEventListener('hashchange', promijeniPrikaz);
+    return () => window.removeEventListener('hashchange', promijeniPrikaz);
+  }, []);
+
+  useEffect(() => {
+    naslovPrikaza.current?.focus();
+  }, [prikaz, idOtvoreneKategorije]);
 
   useEffect(() => {
     let aktivno = true;
@@ -47,12 +80,11 @@ function App() {
         if (!odgovor.ok) throw new Error('Učitavanje kategorija nije uspjelo.');
         return odgovor.json();
       })
-      .then((kategorije: { idNadkategorije: number | null }[]) => {
-        const glavneKategorije = kategorije.filter((kategorija) => kategorija.idNadkategorije === null);
-        setBrojKategorija(glavneKategorije.length);
+      .then((podaci: Kategorija[]) => {
+        if (!zahtjev.signal.aborted) setKategorije(podaci);
       })
-      .catch((greska) => {
-        if (!zahtjev.signal.aborted) console.error(greska);
+      .catch(() => {
+        if (!zahtjev.signal.aborted) setGreskaKategorija(true);
       });
 
     return () => zahtjev.abort();
@@ -63,15 +95,24 @@ function App() {
 
     const zahtjev = new AbortController();
 
-    fetch('/api/igrice', { signal : zahtjev.signal })
+    fetch('/api/igrice', { signal: zahtjev.signal, cache: 'no-store' })
       .then((odgovor) => {
-        if(!odgovor.ok) throw new Error('Učitavanje igrica nije uspjelo.');
+        if (!odgovor.ok) throw new Error('Učitavanje igrica nije uspjelo.');
         return odgovor.json();
       })
-      .then((igrice) => setBrojIgrica(igrice.length))
-      .catch((greska) => {
-        if(!zahtjev.signal.aborted) console.error(greska);
-  });
+      .then((podaci: Igrica[]) => {
+        if (zahtjev.signal.aborted) return;
+        setIgrice((trenutne) => {
+          const trenutniId = new Set(trenutne.map(({ id }) => id));
+          return [...trenutne, ...podaci.filter(({ id }) => !trenutniId.has(id))];
+        });
+        setStanjeIgrica('ucitano');
+      })
+      .catch(() => {
+        if (!zahtjev.signal.aborted) setStanjeIgrica('greska');
+      });
+
+    return () => zahtjev.abort();
   }, [admin]);
 
   useEffect(() => {
@@ -79,15 +120,24 @@ function App() {
 
     const zahtjev = new AbortController();
 
-    fetch('/api/nivoi', { signal : zahtjev.signal })
+    fetch('/api/nivoi', { signal: zahtjev.signal, cache: 'no-store' })
       .then((odgovor) => {
-        if(!odgovor.ok) throw new Error('Učitavanje nivoa nije uspjelo.');
+        if (!odgovor.ok) throw new Error('Učitavanje nivoa nije uspjelo.');
         return odgovor.json();
       })
-      .then((nivoi) => setBrojNivoa(nivoi.length))
-      .catch((greska) => {
-        if(!zahtjev.signal.aborted) console.error(greska);
+      .then((podaci: Nivo[]) => {
+        if (zahtjev.signal.aborted) return;
+        setNivoe((trenutni) => {
+          const trenutniId = new Set(trenutni.map(({ id }) => id));
+          return [...trenutni, ...podaci.filter(({ id }) => !trenutniId.has(id))];
+        });
+        setStanjeNivoa('ucitano');
+      })
+      .catch(() => {
+        if (!zahtjev.signal.aborted) setStanjeNivoa('greska');
       });
+
+    return () => zahtjev.abort();
   }, [admin]);
 
   useEffect(() => {
@@ -95,16 +145,20 @@ function App() {
 
     const zahtjev = new AbortController();
 
-    fetch('/api/aktivnosti', { signal : zahtjev.signal })
+    fetch('/api/aktivnosti', { signal: zahtjev.signal, cache: 'no-store' })
       .then((odgovor) => {
-        if(! odgovor.ok) throw new Error('Ucitavanje aktivnosti nije uspjelo.');
+        if (!odgovor.ok) throw new Error('Učitavanje aktivnosti nije uspjelo.');
         return odgovor.json();
       })
 
-      .then((aktivnosti) => setBrojAktivnosti(aktivnosti.length))
+      .then((podaci: { idNivoa: number }[]) => {
+        if (!zahtjev.signal.aborted) setAktivnosti(podaci);
+      })
       .catch((greska) => {
         if(!zahtjev.signal.aborted) console.error(greska);
       });
+
+    return () => zahtjev.abort();
   }, [admin]);
 
   useEffect(() =>{ 
@@ -160,6 +214,16 @@ function App() {
     try {
       await odjaviSe();
       setAdmin(null);
+      setIgricaZaNivo(null);
+      setPorukaNivoa('');
+      setNivoe([]);
+      setStanjeNivoa('ucitavanje');
+      setKategorije(null);
+      setGreskaKategorija(false);
+      setIgrice([]);
+      setAktivnosti(null);
+      setStanjeIgrica('ucitavanje');
+      setKreiranaIgrica('');
     } catch (error) {
       setGreska(error instanceof Error ? error.message : 'Odjava nije uspjela.');
     } finally {
@@ -168,6 +232,8 @@ function App() {
   }
 
   if (admin) {
+    const odabranaPotkategorija = kategorije?.find(({ id }) => id === filterPotkategorije);
+
     return <>
       <header className="toolbar">
         <Brend />
@@ -179,9 +245,9 @@ function App() {
         <aside className="sidebar">
           <nav aria-label="Admin meni">
             <ul>
-              <li className="sidebar-active">Pregled</li>
-              <li>Kategorije</li>
-              <li>Igrice</li>
+              <li><a href="#pregled" aria-current={prikaz === 'pregled' ? 'page' : undefined}>Pregled</a></li>
+              <li><a href="#kategorije" aria-current={prikaz === 'kategorije' ? 'page' : undefined}>Kategorije</a></li>
+              <li><a href="#igrice" aria-current={prikaz === 'igrice' ? 'page' : undefined}>Igrice</a></li>
               <li>Sadržaji</li>
               <li>Avatari</li>
               <li>Recenzije</li>
@@ -189,15 +255,16 @@ function App() {
           </nav>
         </aside>
         <main className="overview">
-          <h1>Pregled</h1>
+          {prikaz === 'pregled' ? <>
+          <h1 id="pregled" ref={naslovPrikaza} tabIndex={-1}>Pregled</h1>
           <p>Dobro došli, {admin.ime}.</p>
 
           <div className = "quick-actions">
-            <button type = "button" className = "quick-action" disabled>
+            <button type="button" className="quick-action" aria-haspopup="dialog" onClick={() => dijalogIgrice.current?.showModal()}>
               <Gamepad2 size = {28} aria-hidden="true" />
               <span>
                 <strong>Nova igrica</strong>
-                <small>Dodaj igricu i njene nivoe</small>
+                <small>Dodaj novu igricu</small>
                 </span>
               </button>
 
@@ -221,31 +288,31 @@ function App() {
             <h2 id = "sadrzaj-naslov">Pregled sadržaja</h2>
 
           <div className = "stats-grid">
-            <div className = "stat-card">
+            <a className="stat-card stat-card-link" href="#kategorije">
               <div className="stat-card-icon" aria-hidden="true">
                   <Layers size={28} />
                 </div>
                 <div className="stat-card-text">
-                  <strong>{brojKategorija ?? '-'}</strong>
+                  <strong>{kategorije?.filter(({ idNadkategorije }) => idNadkategorije === null).length ?? '-'}</strong>
                   <span>Kategorije</span>
                 </div>
-              </div>
+              </a>
 
-              <div className = "stat-card stat-card--mint">
+              <a className="stat-card stat-card--mint stat-card-link" href="#igrice">
                 <div className="stat-card-icon" aria-hidden="true">
                   <Gamepad2 size={28} />
                 </div>
                 <div className="stat-card-text">
-                  <strong>{brojIgrica ?? '-'}</strong>
+                  <strong>{stanjeIgrica === 'ucitano' ? igrice.length : '-'}</strong>
                   <span>Igrice</span>
                 </div>
-              </div>
+              </a>
               <div className = "stat-card stat-card--lavanda">
                 <div className="stat-card-icon" aria-hidden="true">
                   <Layers size={28} />
                 </div>
                 <div className="stat-card-text">
-                  <strong>{brojNivoa ?? '-'}</strong>
+                  <strong>{stanjeNivoa === 'ucitano' ? nivoi.length : '-'}</strong>
                   <span>Nivoi</span>
                 </div>
               </div>
@@ -255,7 +322,7 @@ function App() {
                   <CalendarDays size={28} />
                 </div>
                 <div className="stat-card-text">
-                  <strong>{brojAktivnosti ?? '-'}</strong>
+                  <strong>{aktivnosti?.length ?? '-'}</strong>
                   <span>Aktivnosti</span>
                 </div>
               </div>
@@ -282,6 +349,55 @@ function App() {
               </div>
               </section>
 
+          </> : prikaz === 'kategorije' ? <Kategorije
+            key={idOtvoreneKategorije}
+            naslovPrikaza={naslovPrikaza}
+            idOtvoreneKategorije={idOtvoreneKategorije}
+            kategorije={kategorije}
+            igrice={stanjeIgrica === 'ucitano' ? igrice : null}
+            greskaUcitavanja={greskaKategorija}
+            onSacuvana={(kategorija) => {
+              setKategorije((lista) => lista?.some(({ id }) => id === kategorija.id)
+                ? lista.map((stavka) => stavka.id === kategorija.id ? kategorija : stavka)
+                : [...(lista ?? []), kategorija]);
+            }}
+            onObrisana={(id) => setKategorije((lista) => lista?.filter((stavka) => stavka.id !== id) ?? null)}
+          /> : <PregledIgrica
+            naslovPrikaza={naslovPrikaza}
+            igrice={igrice}
+            kategorije={kategorije}
+            nivoi={stanjeNivoa === 'ucitano' ? nivoi : null}
+            aktivnosti={aktivnosti}
+            stanje={stanjeIgrica}
+            filterKategorije={idKategorije}
+            filterPotkategorije={filterPotkategorije}
+            porukaIgrice={kreiranaIgrica}
+            porukaNivoa={porukaNivoa}
+            onNovaIgrica={() => dijalogIgrice.current?.showModal()}
+            onDodajNivo={(igrica) => {
+              setPorukaNivoa('');
+              setIgricaZaNivo(igrica);
+            }}
+          />}
+          {igricaZaNivo && <DodajNivo
+            idIgrice={igricaZaNivo.id}
+            nazivIgrice={igricaZaNivo.naziv}
+            onZatvori={() => setIgricaZaNivo(null)}
+            onSacuvan={(nivo) => {
+              setNivoe((trenutni) => [...trenutni.filter(({ id }) => id !== nivo.id), nivo]);
+              setPorukaNivoa(`Nivo „${nivo.naziv}” dodat je u igricu „${igricaZaNivo.naziv}”.`);
+            }}
+          />}
+          <NovaIgrica
+            dijalog={dijalogIgrice}
+            pocetnaKategorija={odabranaPotkategorija?.id}
+            kategorije={kategorije}
+            greskaKategorija={greskaKategorija}
+            onKreirana={(igrica) => {
+              setIgrice((lista) => [igrica, ...lista.filter(({ id }) => id !== igrica.id)]);
+              setKreiranaIgrica(igrica.naziv);
+            }}
+          />
           {greska && <p className="error" role="alert">{greska}</p>}
         </main>
       </div>

@@ -14,6 +14,8 @@ U MySQL Workbenchu za novu bazu redom izvršiti:
 1. `database/schema.sql`
 2. `database/seed.sql`
 
+Za postojeću bazu pokrenuti samo cijeli `database/seed.sql`. Fajl usklađuje stare potkategorije Matematike i zadržava postojeće igrice i nivoe. U MySQL Workbenchu uključiti **Query → Stop Script Execution On Errors** prije pokretanja. Ako skript prijavi grešku, izvršiti `ROLLBACK;` u istoj konekciji i prekinuti pokušaj.
+
 
 Backend pokrenuti iz glavnog foldera projekta u Windows CMD terminalu. Unijeti vlastite podatke za MySQL:
 ```cmd

@@ -373,6 +373,25 @@ COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
+-- Table `curiosity_corner`.`rezultat_osmosmjerke`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `curiosity_corner`.`rezultat_osmosmjerke` (
+  `IdPokusajaAktivnosti` BIGINT UNSIGNED NOT NULL,
+  `BrojPronadjenihRijeci` INT UNSIGNED NOT NULL,
+  `UkupanBrojRijeci` INT UNSIGNED NOT NULL,
+  PRIMARY KEY (`IdPokusajaAktivnosti`),
+  CONSTRAINT `FK_REZULTAT_OSMOSMJERKE_POKUSAJ`
+    FOREIGN KEY (`IdPokusajaAktivnosti`)
+    REFERENCES `curiosity_corner`.`pokusaj_aktivnosti` (`IdPokusajaAktivnosti`)
+    ON DELETE CASCADE,
+  CONSTRAINT `CK_REZULTAT_OSMOSMJERKE_BROJ_RIJECI`
+    CHECK (`UkupanBrojRijeci` > 0 AND `BrojPronadjenihRijeci` <= `UkupanBrojRijeci`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_unicode_ci;
+
+
+-- -----------------------------------------------------
 -- Table `curiosity_corner`.`izabrani_par`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `curiosity_corner`.`izabrani_par` (
