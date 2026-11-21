@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { odjaviSe, prijaviSe, provjeriSesiju, type Administrator } from './auth';
-import { Eye, EyeOff, LockKeyhole, LogIn, UserRound } from 'lucide-react';
+import { CalendarDays, Eye, EyeOff, Gamepad2, Layers, LockKeyhole, LogIn, MessageSquareMore, UserRound } from 'lucide-react';
 import './style.css';
 
 function Brend() {
@@ -10,6 +10,12 @@ function Brend() {
 
 function App() {
   const [admin, setAdmin] = useState<Administrator | null>(null);
+  const [brojKategorija, setBrojKategorija] = useState<number | null>(null);
+  const [brojIgrica, setBrojIgrica] = useState<number | null>(null);
+  const [brojNivoa, setBrojNivoa] = useState<number | null>(null);
+  const [brojAktivnosti, setBrojAktivnosti] = useState<number | null>(null);
+  const [brojAvatara, setBrojAvatara] = useState<number | null>(null);
+  const [brojRecenzija, setBrojRecenzija] = useState<number | null>(null);
   const [provjera, setProvjera] = useState(true);
   const [pokusaj, setPokusaj] = useState(0);
   const [provjeraNeuspjela, setProvjeraNeuspjela] = useState(false);
@@ -30,6 +36,108 @@ function App() {
       .finally(() => { if (aktivno) setProvjera(false); });
     return () => { aktivno = false; };
   }, [pokusaj]);
+
+  useEffect(() => {
+    if (!admin) return;
+
+    const zahtjev = new AbortController();
+
+    fetch('/api/kategorije', { signal: zahtjev.signal })
+      .then((odgovor) => {
+        if (!odgovor.ok) throw new Error('Učitavanje kategorija nije uspjelo.');
+        return odgovor.json();
+      })
+      .then((kategorije: { idNadkategorije: number | null }[]) => {
+        const glavneKategorije = kategorije.filter((kategorija) => kategorija.idNadkategorije === null);
+        setBrojKategorija(glavneKategorije.length);
+      })
+      .catch((greska) => {
+        if (!zahtjev.signal.aborted) console.error(greska);
+      });
+
+    return () => zahtjev.abort();
+  }, [admin]);
+
+  useEffect(() => {
+    if (!admin) return;
+
+    const zahtjev = new AbortController();
+
+    fetch('/api/igrice', { signal : zahtjev.signal })
+      .then((odgovor) => {
+        if(!odgovor.ok) throw new Error('Učitavanje igrica nije uspjelo.');
+        return odgovor.json();
+      })
+      .then((igrice) => setBrojIgrica(igrice.length))
+      .catch((greska) => {
+        if(!zahtjev.signal.aborted) console.error(greska);
+  });
+  }, [admin]);
+
+  useEffect(() => {
+    if (!admin) return;
+
+    const zahtjev = new AbortController();
+
+    fetch('/api/nivoi', { signal : zahtjev.signal })
+      .then((odgovor) => {
+        if(!odgovor.ok) throw new Error('Učitavanje nivoa nije uspjelo.');
+        return odgovor.json();
+      })
+      .then((nivoi) => setBrojNivoa(nivoi.length))
+      .catch((greska) => {
+        if(!zahtjev.signal.aborted) console.error(greska);
+      });
+  }, [admin]);
+
+  useEffect(() => {
+    if (!admin) return;
+
+    const zahtjev = new AbortController();
+
+    fetch('/api/aktivnosti', { signal : zahtjev.signal })
+      .then((odgovor) => {
+        if(! odgovor.ok) throw new Error('Ucitavanje aktivnosti nije uspjelo.');
+        return odgovor.json();
+      })
+
+      .then((aktivnosti) => setBrojAktivnosti(aktivnosti.length))
+      .catch((greska) => {
+        if(!zahtjev.signal.aborted) console.error(greska);
+      });
+  }, [admin]);
+
+  useEffect(() =>{ 
+    if (!admin) return;
+
+    const zahtjev = new AbortController();
+    
+    fetch('/api/avatari', { signal: zahtjev.signal })
+  .then((odgovor) => {
+    if (!odgovor.ok) throw new Error('Učitavanje avatara nije uspjelo.');
+    return odgovor.json();
+  })
+  .then((avatari) => setBrojAvatara(avatari.length))
+    .catch((greska) => {
+      if(!zahtjev.signal.aborted) console.error(greska);
+    });
+  }, [admin]);
+
+  useEffect(() =>{ 
+    if (!admin) return;
+
+    const zahtjev = new AbortController();
+    
+    fetch('/api/admin/recenzije', { signal: zahtjev.signal })
+  .then((odgovor) => {
+    if (!odgovor.ok) throw new Error('Učitavanje recenzija nije uspjelo.');
+    return odgovor.json();
+  })
+  .then((recenzije) => setBrojRecenzija(recenzije.length))
+    .catch((greska) => {
+      if(!zahtjev.signal.aborted) console.error(greska);
+    });
+  }, [admin]);
 
   async function prijava(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,11 +175,116 @@ function App() {
           {salje ? 'Odjava…' : 'Odjavi se'}
         </button>
       </header>
-      <main className="overview">
-        <h1>Pregled</h1>
-        <p>Dobro došli, {admin.ime}.</p>
-        {greska && <p className="error" role="alert">{greska}</p>}
-      </main>
+      <div className="admin-layout">
+        <aside className="sidebar">
+          <nav aria-label="Admin meni">
+            <ul>
+              <li className="sidebar-active">Pregled</li>
+              <li>Kategorije</li>
+              <li>Igrice</li>
+              <li>Sadržaji</li>
+              <li>Avatari</li>
+              <li>Recenzije</li>
+            </ul>
+          </nav>
+        </aside>
+        <main className="overview">
+          <h1>Pregled</h1>
+          <p>Dobro došli, {admin.ime}.</p>
+
+          <div className = "quick-actions">
+            <button type = "button" className = "quick-action" disabled>
+              <Gamepad2 size = {28} aria-hidden="true" />
+              <span>
+                <strong>Nova igrica</strong>
+                <small>Dodaj igricu i njene nivoe</small>
+                </span>
+              </button>
+
+            <button type = "button" className = "quick-action" disabled>
+              <CalendarDays size = {28} aria-hidden = "true" />
+              <span>
+                <strong>Nova aktivnost</strong>
+                <small>Dodaj aktivnost u postojeću igricu</small>
+                </span>
+                </button>
+
+            <button type = "button" className = "quick-action" disabled>
+              <MessageSquareMore size={28} aria-hidden = "true" />
+              <span>
+                <strong>Recenzije bez odgovora</strong>
+                <small>Pogledaj komentare koji čekaju odgovor</small>
+                </span>
+                </button>
+                </div>
+          <section aria-labelledby = "sadrzaj-naslov">
+            <h2 id = "sadrzaj-naslov">Pregled sadržaja</h2>
+
+          <div className = "stats-grid">
+            <div className = "stat-card">
+              <div className="stat-card-icon" aria-hidden="true">
+                  <Layers size={28} />
+                </div>
+                <div className="stat-card-text">
+                  <strong>{brojKategorija ?? '-'}</strong>
+                  <span>Kategorije</span>
+                </div>
+              </div>
+
+              <div className = "stat-card stat-card--mint">
+                <div className="stat-card-icon" aria-hidden="true">
+                  <Gamepad2 size={28} />
+                </div>
+                <div className="stat-card-text">
+                  <strong>{brojIgrica ?? '-'}</strong>
+                  <span>Igrice</span>
+                </div>
+              </div>
+              <div className = "stat-card stat-card--lavanda">
+                <div className="stat-card-icon" aria-hidden="true">
+                  <Layers size={28} />
+                </div>
+                <div className="stat-card-text">
+                  <strong>{brojNivoa ?? '-'}</strong>
+                  <span>Nivoi</span>
+                </div>
+              </div>
+
+              <div className = "stat-card stat-card--mint">
+                <div className="stat-card-icon" aria-hidden="true">
+                  <CalendarDays size={28} />
+                </div>
+                <div className="stat-card-text">
+                  <strong>{brojAktivnosti ?? '-'}</strong>
+                  <span>Aktivnosti</span>
+                </div>
+              </div>
+
+              <div className = "stat-card">
+                <div className="stat-card-icon" aria-hidden="true">
+                  <UserRound size={28} />
+                </div>
+                <div className="stat-card-text">
+                  <strong>{brojAvatara ?? '-'}</strong>
+                  <span>Avatari</span>
+                </div>
+                </div>
+
+              <div className = "stat-card stat-card--zelena">
+                <div className="stat-card-icon" aria-hidden="true">
+                  <MessageSquareMore size={28} />
+                </div>
+                <div className="stat-card-text">
+                  <strong>{brojRecenzija ?? '-'}</strong>
+                  <span>Recenzije</span>
+                </div>
+                </div>
+              </div>
+              </section>
+
+          {greska && <p className="error" role="alert">{greska}</p>}
+        </main>
+      </div>
     </>;
   }
 
