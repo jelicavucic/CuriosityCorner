@@ -4,6 +4,7 @@ import { OsnovniPodaciAktivnosti } from './osnovni-podaci-aktivnosti';
 import { IzborTipaAktivnosti } from './izbor-tipa-aktivnosti';
 import { FormaPitanja, procitajPitanje, ucitajPitanje } from './forma-pitanje';
 import { FormaSpajanja, procitajSpajanje, ucitajSpajanje } from './forma-spajanja';
+import { FormaMemorije, procitajMemoriju, ucitajMemoriju } from './forma-memorije';
 export type Aktivnost = {
   id: number;
   idNivoa: number;
@@ -41,6 +42,7 @@ export function AktivnostDijalog({
   const [imaIzmjena, setImaIzmjena] = useState(false);
   const [ucitanoPitanje, setUcitanoPitanje] = useState<Awaited<ReturnType<typeof ucitajPitanje>>>();
   const [ucitanoSpajanje, setUcitanoSpajanje] = useState<Awaited<ReturnType<typeof ucitajSpajanje>>>();
+  const [ucitanaMemorija, setUcitanuMemoriju] = useState<Awaited<ReturnType<typeof ucitajMemoriju>>>();
   const [greskaUcitavanja, setGreskuUcitavanja] = useState('');
   const [pokusajUcitavanja, setPokusajUcitavanja] = useState(0);
   const aktivnost = akcija.vrsta === 'dodaj' ? null : akcija.aktivnost;
@@ -48,10 +50,13 @@ export function AktivnostDijalog({
   const tip = aktivnost ? tipovi?.find(({ id }) => id === aktivnost.idTipa) : odabraniTip;
   const jePitanje = !brise && tip?.oznaka.toLowerCase() === 'pitanje';
   const jeSpajanje = !brise && tip?.oznaka.toLowerCase() === 'spajanje';
+  const jeMemorija = !brise && tip?.oznaka.toLowerCase() === 'memorija';
   const idPitanja = jePitanje ? aktivnost?.id : undefined;
   const idSpajanja = jeSpajanje ? aktivnost?.id : undefined;
+  const idMemorije = jeMemorija ? aktivnost?.id : undefined;
   const cekaPodatke = (jePitanje && idPitanja !== undefined && ucitanoPitanje === undefined)
     || (idSpajanja !== undefined && ucitanoSpajanje === undefined)
+    || (idMemorije !== undefined && ucitanaMemorija === undefined)
     || (akcija.vrsta === 'uredi' && tipovi === null);
   const naslov = brise ? 'Obriši aktivnost' : biraTip ? 'Izaberi tip aktivnosti'
     : `${aktivnost ? 'Uredi aktivnost' : 'Dodaj aktivnost'}${tip ? ` – ${tip.naziv}` : ''}`;
@@ -89,6 +94,19 @@ export function AktivnostDijalog({
     });
     return () => kontroler.abort();
   }, [idSpajanja, pokusajUcitavanja]);
+
+  useEffect(() => {
+    if (idMemorije === undefined) return;
+    const kontroler = new AbortController();
+    ucitajMemoriju(idMemorije, kontroler.signal).then((rezultat) => {
+      if (!kontroler.signal.aborted) setUcitanuMemoriju(rezultat);
+    }).catch((error) => {
+      if (!kontroler.signal.aborted) {
+        setGreskuUcitavanja(error instanceof Error ? error.message : 'Učitavanje memorije nije uspjelo.');
+      }
+    });
+    return () => kontroler.abort();
+  }, [idMemorije, pokusajUcitavanja]);
 
   function dozvoliZatvaranje() {
     return !salje && (!imaIzmjena || window.confirm('Imaš nesačuvane izmjene. Želiš li ih odbaciti?'));
@@ -140,9 +158,10 @@ export function AktivnostDijalog({
           return par.redniBroj !== prethodni.redniBroj || par.lijevo.idSadrzaja !== prethodni.idLijevogSadrzaja
             || par.desno.idSadrzaja !== prethodni.idDesnogSadrzaja;
         }));
-      const resurs = promjenaPitanja ? '/api/admin/aktivnosti/pitanja'
+      const memorija = jeMemorija ? procitajMemoriju(podaci, ucitanaMemorija) : null;
+      const resurs = memorija ? '/api/admin/aktivnosti/memorije' : promjenaPitanja ? '/api/admin/aktivnosti/pitanja'
         : promjenaSpajanja ? '/api/admin/aktivnosti/spajanja' : '/api/aktivnosti';
-      const zahtjev = promjenaPitanja ? { aktivnost: osnovniPodaci, pitanje }
+      const zahtjev = memorija ? { aktivnost: osnovniPodaci, memorija } : promjenaPitanja ? { aktivnost: osnovniPodaci, pitanje }
         : promjenaSpajanja ? { aktivnost: osnovniPodaci, spajanje } : osnovniPodaci;
       const putanja = aktivnost ? `${resurs}/${aktivnost.id}` : resurs;
       const odgovor = brise
@@ -197,6 +216,8 @@ export function AktivnostDijalog({
         {jePitanje && !cekaPodatke && <FormaPitanja ucitano={ucitanoPitanje ?? null}
           onIzmjena={() => setImaIzmjena(true)} />}
         {jeSpajanje && !cekaPodatke && <FormaSpajanja ucitano={ucitanoSpajanje ?? null}
+          onIzmjena={() => setImaIzmjena(true)} />}
+        {jeMemorija && !cekaPodatke && <FormaMemorije ucitano={ucitanaMemorija ?? null}
           onIzmjena={() => setImaIzmjena(true)} />}
         {greskaUcitavanja ? <>
           <p className="error" role="alert">{greskaUcitavanja}</p>

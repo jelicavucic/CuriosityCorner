@@ -145,26 +145,18 @@ input, select, textarea {
   transform: translateX(-50%);
   width: 7.75rem;
   height: 2.6rem;
-  border: 1px solid #d6eee7;
-  border-bottom: 0;
   border-radius: 50% 50% 0 0 / 70% 70% 0 0;
   background: #fff;
 }
 
 .login-icon {
-  position: relative;
-  width: 4.25rem;
-  aspect-ratio: 68 / 52;
-  margin: -.25rem auto .85rem;
-  overflow: hidden;
-  border-radius: 50%;
+  width: 5.25rem;
+  margin: 0 auto .35rem;
 }
 
 .login-icon img {
-  position: absolute;
-  top: -58%;
-  left: -35%;
-  width: 150%;
+  display: block;
+  width: 100%;
   height: auto;
 }
 .login label { display: flex; align-items: center; gap: .55rem; }

@@ -236,29 +236,38 @@ export function Sadrzaji({ naslovPrikaza }: { naslovPrikaza: RefObject<HTMLHeadi
   </section>;
 }
 
-export function IzaberiSadrzaj({ pocetni, onOdaberi, onZatvori }: {
-  pocetni?: Sadrzaj; onOdaberi: (stavka: Sadrzaj) => void; onZatvori: () => void;
+export function IzaberiSadrzaj({ pocetni, onOdaberi, onZatvori, samoSlike = false }: {
+  pocetni?: Sadrzaj; onOdaberi: (stavka: Sadrzaj) => void; onZatvori: () => void; samoSlike?: boolean;
 }) {
   const podaci = useSadrzaji();
   const [odabrani, setOdabrani] = useState(pocetni);
   const [dodavanje, setDodavanje] = useState(false);
   const [poruka, setPoruku] = useState('');
+  const dostupni = samoSlike && podaci.lista
+    ? { ...podaci, lista: podaci.lista.filter((stavka) => stavka.putanjaSlike?.trim()) }
+    : podaci;
+  const mozeOdabrati = odabrani && (!samoSlike || odabrani.putanjaSlike?.trim());
 
   return <>
-    <Modal naslov="Izaberi sadržaj" onZatvori={onZatvori}>
+    <Modal naslov={samoSlike ? 'Izaberi sliku' : 'Izaberi sadržaj'} onZatvori={onZatvori}>
       <div role="status" className="sadrzaj-status">{poruka}</div>
-      <Biblioteka podaci={podaci} odabraniId={odabrani?.id} onOdabir={setOdabrani} />
+      <Biblioteka podaci={dostupni} odabraniId={odabrani?.id} onOdabir={setOdabrani} />
       <div className="sadrzaj-forma-akcije">
         <button type="button" className="secondary" aria-haspopup="dialog" onClick={() => setDodavanje(true)}>
           <Plus size={17} aria-hidden="true" /> Dodaj sadržaj
         </button>
         <button type="button" className="secondary" onClick={onZatvori}>Otkaži</button>
-        <button type="button" className="primary" disabled={!odabrani}
-          onClick={() => { if (odabrani) onOdaberi(odabrani); }}>Odaberi</button>
+        <button type="button" className="primary" disabled={!mozeOdabrati}
+          onClick={() => { if (odabrani && mozeOdabrati) onOdaberi(odabrani); }}>Odaberi</button>
       </div>
     </Modal>
     {dodavanje && <FormaSadrzaja onZatvori={() => setDodavanje(false)} onSacuvan={(stavka) => {
       podaci.sacuvaj(stavka);
+      if (samoSlike && !stavka.putanjaSlike?.trim()) {
+        setPoruku('Sadržaj je sačuvan. Za memoriju izaberi sadržaj sa slikom.');
+        setDodavanje(false);
+        return;
+      }
       setOdabrani(stavka);
       setPoruku(`Sadržaj #${stavka.id} je sačuvan i izabran.`);
       setDodavanje(false);
