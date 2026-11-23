@@ -3,7 +3,7 @@ import { posaljiAdminZahtjev } from './auth';
 import { OsnovniPodaciAktivnosti } from './osnovni-podaci-aktivnosti';
 import { IzborTipaAktivnosti } from './izbor-tipa-aktivnosti';
 import { FormaPitanja, procitajPitanje, ucitajPitanje } from './forma-pitanje';
-
+import { FormaSpajanja, procitajSpajanje, ucitajSpajanje } from './forma-spajanja';
 export type Aktivnost = {
   id: number;
   idNivoa: number;
@@ -40,14 +40,18 @@ export function AktivnostDijalog({
   const [odabraniTip, setOdabraniTip] = useState<TipAktivnosti | null>(null);
   const [imaIzmjena, setImaIzmjena] = useState(false);
   const [ucitanoPitanje, setUcitanoPitanje] = useState<Awaited<ReturnType<typeof ucitajPitanje>>>();
-  const [greskaPitanja, setGreskuPitanja] = useState('');
+  const [ucitanoSpajanje, setUcitanoSpajanje] = useState<Awaited<ReturnType<typeof ucitajSpajanje>>>();
+  const [greskaUcitavanja, setGreskuUcitavanja] = useState('');
   const [pokusajUcitavanja, setPokusajUcitavanja] = useState(0);
   const aktivnost = akcija.vrsta === 'dodaj' ? null : akcija.aktivnost;
   const brise = akcija.vrsta === 'obrisi';
   const tip = aktivnost ? tipovi?.find(({ id }) => id === aktivnost.idTipa) : odabraniTip;
   const jePitanje = !brise && tip?.oznaka.toLowerCase() === 'pitanje';
+  const jeSpajanje = !brise && tip?.oznaka.toLowerCase() === 'spajanje';
   const idPitanja = jePitanje ? aktivnost?.id : undefined;
+  const idSpajanja = jeSpajanje ? aktivnost?.id : undefined;
   const cekaPodatke = (jePitanje && idPitanja !== undefined && ucitanoPitanje === undefined)
+    || (idSpajanja !== undefined && ucitanoSpajanje === undefined)
     || (akcija.vrsta === 'uredi' && tipovi === null);
   const naslov = brise ? 'Obriši aktivnost' : biraTip ? 'Izaberi tip aktivnosti'
     : `${aktivnost ? 'Uredi aktivnost' : 'Dodaj aktivnost'}${tip ? ` – ${tip.naziv}` : ''}`;
@@ -67,11 +71,24 @@ export function AktivnostDijalog({
       if (!kontroler.signal.aborted) setUcitanoPitanje(rezultat);
     }).catch((error) => {
       if (!kontroler.signal.aborted) {
-        setGreskuPitanja(error instanceof Error ? error.message : 'Učitavanje pitanja nije uspjelo.');
+        setGreskuUcitavanja(error instanceof Error ? error.message : 'Učitavanje pitanja nije uspjelo.');
       }
     });
     return () => kontroler.abort();
   }, [idPitanja, pokusajUcitavanja]);
+
+  useEffect(() => {
+    if (idSpajanja === undefined) return;
+    const kontroler = new AbortController();
+    ucitajSpajanje(idSpajanja, kontroler.signal).then((rezultat) => {
+      if (!kontroler.signal.aborted) setUcitanoSpajanje(rezultat);
+    }).catch((error) => {
+      if (!kontroler.signal.aborted) {
+        setGreskuUcitavanja(error instanceof Error ? error.message : 'Učitavanje parova nije uspjelo.');
+      }
+    });
+    return () => kontroler.abort();
+  }, [idSpajanja, pokusajUcitavanja]);
 
   function dozvoliZatvaranje() {
     return !salje && (!imaIzmjena || window.confirm('Imaš nesačuvane izmjene. Želiš li ih odbaciti?'));
@@ -113,20 +130,33 @@ export function AktivnostDijalog({
           return stavka.idSadrzaja !== prethodna.idSadrzaja || stavka.redniBroj !== prethodna.redniBroj
             || stavka.jeTacan !== prethodna.jeTacan;
         }));
-      const resurs = promjenaPitanja ? '/api/admin/aktivnosti/pitanja' : '/api/aktivnosti';
+      const spajanje = jeSpajanje ? procitajSpajanje(podaci) : null;
+      const prethodnoSpajanje = ucitanoSpajanje?.konfiguracija;
+      const promjenaSpajanja = spajanje && (!prethodnoSpajanje
+        || spajanje.nasumicanRaspored !== prethodnoSpajanje.nasumicanRaspored
+        || spajanje.parovi.length !== prethodnoSpajanje.parovi.length
+        || spajanje.parovi.some((par, indeks) => {
+          const prethodni = prethodnoSpajanje.parovi[indeks];
+          return par.redniBroj !== prethodni.redniBroj || par.lijevo.idSadrzaja !== prethodni.idLijevogSadrzaja
+            || par.desno.idSadrzaja !== prethodni.idDesnogSadrzaja;
+        }));
+      const resurs = promjenaPitanja ? '/api/admin/aktivnosti/pitanja'
+        : promjenaSpajanja ? '/api/admin/aktivnosti/spajanja' : '/api/aktivnosti';
+      const zahtjev = promjenaPitanja ? { aktivnost: osnovniPodaci, pitanje }
+        : promjenaSpajanja ? { aktivnost: osnovniPodaci, spajanje } : osnovniPodaci;
       const putanja = aktivnost ? `${resurs}/${aktivnost.id}` : resurs;
       const odgovor = brise
         ? await posaljiAdminZahtjev('DELETE', putanja)
-        : await posaljiAdminZahtjev(aktivnost ? 'PUT' : 'POST', putanja,
-          promjenaPitanja ? { aktivnost: osnovniPodaci, pitanje } : osnovniPodaci);
+        : await posaljiAdminZahtjev(aktivnost ? 'PUT' : 'POST', putanja, zahtjev);
       if (odgovor.status === 401 || odgovor.status === 403) {
         throw new Error('Provjerite administratorsku sesiju pa pokušajte ponovo.');
       }
       if (!odgovor.ok) {
         const problem: { detail?: string; greske?: Record<string, string> } | null =
           await odgovor.json().catch(() => null);
+        const zadanaPoruka = brise ? 'Brisanje aktivnosti nije uspjelo' : 'Čuvanje aktivnosti nije uspjelo';
         throw new Error(Object.values(problem?.greske ?? {}).join(' ') || problem?.detail
-          || (brise ? 'Brisanje aktivnosti nije uspjelo.' : 'Čuvanje aktivnosti nije uspjelo.'));
+          || `${zadanaPoruka} (HTTP ${odgovor.status}).`);
       }
       if (akcija.vrsta === 'obrisi') onObrisana(akcija.aktivnost.id);
       else onSacuvana(await odgovor.json());
@@ -166,10 +196,12 @@ export function AktivnostDijalog({
         <OsnovniPodaciAktivnosti aktivnost={aktivnost} sljedeciBroj={sljedeciBroj} greskaRedoslijeda={greskaRedoslijeda} />
         {jePitanje && !cekaPodatke && <FormaPitanja ucitano={ucitanoPitanje ?? null}
           onIzmjena={() => setImaIzmjena(true)} />}
-        {greskaPitanja ? <>
-          <p className="error" role="alert">{greskaPitanja}</p>
+        {jeSpajanje && !cekaPodatke && <FormaSpajanja ucitano={ucitanoSpajanje ?? null}
+          onIzmjena={() => setImaIzmjena(true)} />}
+        {greskaUcitavanja ? <>
+          <p className="error" role="alert">{greskaUcitavanja}</p>
           <button type="button" className="secondary" onClick={() => {
-            setGreskuPitanja('');
+            setGreskuUcitavanja('');
             setPokusajUcitavanja((pokusaj) => pokusaj + 1);
           }}>Pokušaj ponovo</button>
         </> : cekaPodatke && <p role="status">Učitavanje podataka…</p>}

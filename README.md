@@ -60,6 +60,8 @@ Osnovna adresa: `http://localhost:8080`. Trenutno implementirane rute:
 | POST | `/api/aktivnosti` |
 | PUT | `/api/aktivnosti/{id}` |
 | DELETE | `/api/aktivnosti/{id}` |
+| GET | `/api/aktivnosti/{id}/spajanje` |
+| POST | `/api/aktivnosti/{id}/spajanje/provjera` |
 | GET | `/api/tipovi-aktivnosti` |
 | GET | `/api/sadrzaji` |
 | GET | `/api/sadrzaji/{id}` |
@@ -78,10 +80,14 @@ Osnovna adresa: `http://localhost:8080`. Trenutno implementirane rute:
 | GET | `/api/admin/aktivnosti/{id}/spajanje` |
 | GET | `/api/admin/aktivnosti/{id}/spajanje/pregled` |
 | PUT | `/api/admin/aktivnosti/{id}/spajanje` |
+| POST | `/api/admin/aktivnosti/spajanja` |
+| PUT | `/api/admin/aktivnosti/spajanja/{id}` |
 | GET | `/api/admin/aktivnosti/{id}/razvrstavanje` |
 | PUT | `/api/admin/aktivnosti/{id}/razvrstavanje` |
 | GET | `/api/admin/aktivnosti/{id}/pitanje` |
 | PUT | `/api/admin/aktivnosti/{id}/pitanje` |
+| POST | `/api/admin/aktivnosti/pitanja` |
+| PUT | `/api/admin/aktivnosti/pitanja/{id}` |
 | GET | `/api/admin/aktivnosti/{id}/slaganje-slova` |
 | PUT | `/api/admin/aktivnosti/{id}/slaganje-slova` |
 | GET | `/api/admin/aktivnosti/{id}/bajka` |
@@ -97,6 +103,10 @@ Osnovna adresa: `http://localhost:8080`. Trenutno implementirane rute:
 | DELETE | `/api/admin/recenzije/{id}/odgovor` |
 
 `GET /api/admin/aktivnosti/{id}/spajanje/pregled` vraća lijevu i desnu listu ID-eva sadržaja za pregled. Kad je uključen nasumičan raspored, desna lista se promiješa pri svakom pozivu.
+
+Administratorske rute `/api/admin/aktivnosti/spajanja` i `/api/admin/aktivnosti/pitanja` služe za dodavanje i uređivanje. Osnovni podaci aktivnosti, konfiguracija i direktno uneseni tekst čuvaju se u jednoj transakciji.
+
+Za igre sa statusom `AKTIVNA`, mobilna aplikacija poziva `GET /api/aktivnosti/{id}/spajanje` pri otvaranju aktivnosti. Odgovor sadrži liste ID-eva `lijevo` i `desno`. Za provjeru odabranog para šalje `idLijevogSadrzaja` i `idDesnogSadrzaja` na `POST /api/aktivnosti/{id}/spajanje/provjera` i dobija polje `tacan`. Provjera trenutno ne bilježi pokušaje ni bodove. [Primjeri za mobilnu aplikaciju](docs/MOBILNA-API.md#spajanje)
 
 ## Podjela rada
 

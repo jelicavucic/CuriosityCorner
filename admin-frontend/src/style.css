@@ -130,18 +130,41 @@ input, select, textarea {
 .login .brand { font-size: clamp(1.15rem, 5vw, 2rem); }
 .login .brand img { width: clamp(4rem, 18vw, 7rem); height: auto; aspect-ratio: 1; }
 .login .card {
-  padding-top: 1rem;
+  position: relative;
+  isolation: isolate;
+  padding-top: .25rem;
+  background: #fff;
+}
+
+.login .card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -.95rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7.75rem;
+  height: 2.6rem;
+  border: 1px solid #d6eee7;
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0 / 70% 70% 0 0;
   background: #fff;
 }
 
 .login-icon {
-  width: 5.25rem;
-  margin: 0 auto .35rem;
+  position: relative;
+  width: 4.25rem;
+  aspect-ratio: 68 / 52;
+  margin: -.25rem auto .85rem;
+  overflow: hidden;
+  border-radius: 50%;
 }
 
 .login-icon img {
-  display: block;
-  width: 100%;
+  position: absolute;
+  top: -58%;
+  left: -35%;
+  width: 150%;
   height: auto;
 }
 .login label { display: flex; align-items: center; gap: .55rem; }
@@ -381,6 +404,15 @@ input, select, textarea {
 .pitanje-unos textarea { flex: 1 1 14rem; min-width: 0; }
 .pitanje-biblioteka { display: flex; flex-wrap: wrap; gap: .35rem; }
 .pitanje-biblioteka button { min-height: 2.85rem; font-size: .85rem; }
+.pitanje-biblioteka .pitanje-ukloni {
+  min-height: 1.6rem;
+  padding: .15rem .45rem;
+  border: 0;
+  border-radius: .35rem;
+  background: transparent;
+  color: #963636;
+}
+.pitanje-ukloni:hover { background: #f9e6e6; }
 .forma-pitanja > button { justify-self: start; }
 .pitanje-opcionalno { font-size: .85rem; font-weight: 400; }
 .aktivnost-tipovi {

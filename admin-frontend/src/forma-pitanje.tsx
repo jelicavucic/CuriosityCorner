@@ -41,6 +41,7 @@ function procitajSadrzaj(podaci: FormData, ime: string, poruka: string) {
 export function procitajPitanje(podaci: FormData) {
   const sadrzaj = procitajSadrzaj(podaci, 'pitanjeSadrzaj', 'Upiši pitanje ili izaberi sadržaj iz biblioteke.');
   const tacanOdgovor = Number(podaci.get('tacanOdgovor'));
+  if (!tacanOdgovor) throw new Error('Označi tačan odgovor.');
   const odgovori = podaci.getAll('redniBrojOdgovora').map((stavka, indeks) => {
     const redniBroj = Number(stavka);
     return {
@@ -59,7 +60,7 @@ export function FormaPitanja({ ucitano, onIzmjena }: {
   const [redniBrojevi, setRedneBrojeve] = useState(
     () => ucitano?.pitanje.odgovori.map((odgovor) => odgovor.redniBroj) ?? [1, 2, 3, 4],
   );
-  const [tacanOdgovor, setTacanOdgovor] = useState(
+  const [tacanOdgovor, setTacanOdgovor] = useState<number | null>(
     () => ucitano?.pitanje.odgovori.find((odgovor) => odgovor.jeTacan)?.redniBroj ?? 1,
   );
   const [izbor, setIzbor] = useState<string | null>(null);
@@ -75,6 +76,23 @@ export function FormaPitanja({ ucitano, onIzmjena }: {
     }
     return sadrzaji;
   });
+
+  function ukloniOdgovor(redniBroj: number) {
+    const polje = `odgovorSadrzaj-${redniBroj}`;
+    setRedneBrojeve((prethodni) => prethodni.filter((broj) => broj !== redniBroj));
+    setTacanOdgovor((prethodni) => prethodni === redniBroj ? null : prethodni);
+    setUnose((prethodni) => {
+      const sljedeci = { ...prethodni };
+      delete sljedeci[polje];
+      return sljedeci;
+    });
+    setOdabrane((prethodni) => {
+      const sljedeci = new Map(prethodni);
+      sljedeci.delete(polje);
+      return sljedeci;
+    });
+    onIzmjena();
+  }
 
   function prikaziIzbor(ime: string, naziv: string) {
     const stavka = odabrani.get(ime);
@@ -125,24 +143,26 @@ export function FormaPitanja({ ucitano, onIzmjena }: {
       <fieldset className="pitanje-odgovori">
         <legend>Ponuđeni odgovori</legend>
         {redniBrojevi.map((redniBroj, indeks) => (
-        <div key={redniBroj} className="pitanje-stavka">
-          <input type="hidden" name="redniBrojOdgovora" value={redniBroj} />
-          <div className="pitanje-red">
-            <span className="pitanje-naziv">Odgovor {indeks + 1}</span>
-            <label className="pitanje-tacan">
-            <input
-              type="radio"
-              name="tacanOdgovor"
-              value={redniBroj}
-              checked={tacanOdgovor === redniBroj}
-              onChange={() => setTacanOdgovor(redniBroj)}
-            />
-              <span>Tačan odgovor</span>
-            </label>
+          <div key={redniBroj} className="pitanje-stavka">
+            <input type="hidden" name="redniBrojOdgovora" value={redniBroj} />
+            <div className="pitanje-red">
+              <span className="pitanje-naziv">Odgovor {indeks + 1}</span>
+              <div className="pitanje-biblioteka">
+                <label className="pitanje-tacan">
+                  <input type="radio" name="tacanOdgovor" value={redniBroj}
+                    checked={tacanOdgovor === redniBroj}
+                    onChange={() => setTacanOdgovor(redniBroj)} />
+                  <span>Tačan odgovor</span>
+                </label>
+                {redniBrojevi.length > 2 && (
+                  <button type="button" className="pitanje-ukloni" aria-label={`Ukloni odgovor ${indeks + 1}`}
+                    onClick={() => ukloniOdgovor(redniBroj)}>Ukloni</button>
+                )}
+              </div>
+            </div>
+            {prikaziIzbor(`odgovorSadrzaj-${redniBroj}`, `Odgovor ${indeks + 1}`)}
           </div>
-          {prikaziIzbor(`odgovorSadrzaj-${redniBroj}`, `Odgovor ${indeks + 1}`)}
-        </div>
-      ))}
+        ))}
       </fieldset>
 
       <button

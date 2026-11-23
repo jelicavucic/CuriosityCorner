@@ -98,6 +98,14 @@ Rute za korisničku prijavu, profile djece, pokušaje i poteze dio su [Dogovora]
 
 4. Backend provjerava potez i čuva rezultat. Ekran iz odgovora prikaže ishod. Za završetak nivoa planiran je `POST /api/pokusaji-igre/{id}/zavrsetak`.
 
+### Spajanje
+
+Za konfigurirano Spajanje u igrici sa statusom `AKTIVNA` već se mogu koristiti ove rute. `{id}` je ID aktivnosti.
+
+- `GET /api/aktivnosti/{id}/spajanje` vraća dvije liste ID-jeva sadržaja, npr. `{"lijevo":[12,14],"desno":[25,21]}`. Učitaj raspored jednom pri ulasku na ekran. Desna lista se nasumično raspoređuje na serveru ako je administrator uključio tu opciju.
+- Učitaj pojedinačne stavke preko `GET /api/sadrzaji/{id}` i prikaži `tekst` i/ili sliku s adrese `putanjaSlike` na backendu.
+- Za potez pošalji `POST /api/aktivnosti/{id}/spajanje/provjera` sa JSON tijelom `{"idLijevogSadrzaja":12,"idDesnogSadrzaja":21}`. Odgovor je `{"tacan":true}` ili `{"tacan":false}`. Mobilni ekran pamti potvrđene spojeve dok je otvoren. Provjera para trenutno ne upisuje pokušaje ni bodove.
+
 Za ekrane za igranje koristite podatke iz API-ja za igranje. Rute pod `/api/admin/` služe admin panelu i mogu sadržati rješenja, uključujući tačne odgovore i koordinate skrivenih riječi. Primjeri javnih GET zahtjeva iz ovog vodiča rade bez admin sesije i CSRF tokena.
 
 ## Kad zahtjev zapne
