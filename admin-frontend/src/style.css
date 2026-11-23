@@ -130,41 +130,18 @@ input, select, textarea {
 .login .brand { font-size: clamp(1.15rem, 5vw, 2rem); }
 .login .brand img { width: clamp(4rem, 18vw, 7rem); height: auto; aspect-ratio: 1; }
 .login .card {
-  position: relative;
-  isolation: isolate;
-  padding-top: .25rem;
-  background: #fff;
-}
-
-.login .card::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: -.95rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 7.75rem;
-  height: 2.6rem;
-  border: 1px solid #d6eee7;
-  border-bottom: 0;
-  border-radius: 50% 50% 0 0 / 70% 70% 0 0;
+  padding-top: 1rem;
   background: #fff;
 }
 
 .login-icon {
-  position: relative;
-  width: 4.25rem;
-  aspect-ratio: 68 / 52;
-  margin: -.25rem auto .85rem;
-  overflow: hidden;
-  border-radius: 50%;
+  width: 5.25rem;
+  margin: 0 auto .35rem;
 }
 
 .login-icon img {
-  position: absolute;
-  top: -58%;
-  left: -35%;
-  width: 150%;
+  display: block;
+  width: 100%;
   height: auto;
 }
 .login label { display: flex; align-items: center; gap: .55rem; }
@@ -350,6 +327,98 @@ input, select, textarea {
 .admin-dijalog h2 { margin: 0 0 1rem; }
 .admin-dijalog textarea { resize: vertical; }
 .admin-dijalog form p { margin: 0 0 .5rem; }
+.admin-dijalog.aktivnost-izbor-dijalog { width: min(50rem, calc(100% - 2rem)); }
+.admin-dijalog.aktivnost-pitanje-dijalog { width: min(42rem, calc(100% - 2rem)); }
+.forma-pitanja,
+.pitanje-odgovori {
+  display: grid;
+  gap: .7rem;
+  min-width: 0;
+}
+.forma-pitanja { margin: .4rem 0; }
+.pitanje-odgovori { margin: 0; padding: 0; border: 0; }
+.pitanje-odgovori legend { padding: 0; margin-bottom: .45rem; font-weight: 700; }
+.pitanje-stavka {
+  display: block;
+  min-width: 0;
+  padding: .75rem;
+  border: 1px solid #cfe8e1;
+  border-radius: .75rem;
+  background: #f5fbf9;
+}
+.pitanje-naziv { font-weight: 700; }
+.pitanje-red {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .25rem .75rem;
+}
+.pitanje-tacan {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  min-height: 1.6rem;
+  font-size: .85rem;
+  cursor: pointer;
+}
+.pitanje-tacan input {
+  width: 1rem;
+  height: 1rem;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: #087562;
+}
+.pitanje-unos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: .45rem;
+  margin-top: .35rem;
+}
+.forma-pitanja textarea { margin-bottom: 0; }
+.pitanje-unos textarea { flex: 1 1 14rem; min-width: 0; }
+.pitanje-biblioteka { display: flex; flex-wrap: wrap; gap: .35rem; }
+.pitanje-biblioteka button { min-height: 2.85rem; font-size: .85rem; }
+.forma-pitanja > button { justify-self: start; }
+.pitanje-opcionalno { font-size: .85rem; font-weight: 400; }
+.aktivnost-tipovi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: .7rem;
+  padding: 0;
+  margin: 1rem 0;
+  list-style: none;
+}
+.aktivnost-tip-kartica {
+  display: grid;
+  align-content: start;
+  gap: .4rem;
+  width: 100%;
+  height: 100%;
+  padding: .85rem;
+  border: 1px solid #c8e5df;
+  border-radius: .85rem;
+  background: #f3fcf9;
+  color: #0a353a;
+  text-align: left;
+}
+.aktivnost-tip-kartica:hover, .aktivnost-tip-kartica[aria-pressed="true"] {
+  border-color: #168975;
+  background: #e4f7ef;
+}
+.aktivnost-tip-ikona {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: .55rem;
+  background: #fff1bc;
+  color: #735615;
+}
+.aktivnost-tip-kartica small { line-height: 1.35; }
+.aktivnost-izbor-dijalog .nova-igrica-akcije { flex-wrap: wrap; }
 .uzrasti { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: .75rem; }
 .uzrasti label { display: block; margin-bottom: .35rem; }
 .nova-igrica-akcije { display: flex; justify-content: flex-end; gap: .75rem; }

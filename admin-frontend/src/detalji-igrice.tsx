@@ -147,6 +147,7 @@ export function DetaljiIgrice({
       </section>
     </div>
     {nivo && akcija && <AktivnostDijalog akcija={akcija} idNivoa={nivo.id} nazivNivoa={nivo.naziv}
+      aktivnostiNivoa={aktivnostiNivoa}
       sljedeciBroj={(aktivnostiNivoa.at(-1)?.redniBroj ?? 0) + 1} tipovi={tipovi}
       onSacuvana={onSacuvanaAktivnost} onObrisana={onObrisanaAktivnost} onZatvori={() => setAkcija(null)} />}
   </section>;

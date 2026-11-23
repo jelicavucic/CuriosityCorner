@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { posaljiAdminZahtjev } from './auth';
+import { OsnovniPodaciAktivnosti } from './osnovni-podaci-aktivnosti';
+import { IzborTipaAktivnosti } from './izbor-tipa-aktivnosti';
+import { FormaPitanja, procitajPitanje, ucitajPitanje } from './forma-pitanje';
 
 export type Aktivnost = {
   id: number;
@@ -18,6 +21,7 @@ type AktivnostDijalogProps = {
   idNivoa: number;
   nazivNivoa: string;
   sljedeciBroj: number;
+  aktivnostiNivoa: Aktivnost[];
   tipovi: TipAktivnosti[] | null;
   onSacuvana: (aktivnost: Aktivnost) => void;
   onObrisana: (id: number) => void;
@@ -25,38 +29,96 @@ type AktivnostDijalogProps = {
 };
 
 export function AktivnostDijalog({
-  akcija, idNivoa, nazivNivoa, sljedeciBroj, tipovi, onSacuvana, onObrisana, onZatvori,
+  akcija, idNivoa, nazivNivoa, sljedeciBroj, aktivnostiNivoa, tipovi, onSacuvana, onObrisana, onZatvori,
 }: AktivnostDijalogProps) {
   const dijalog = useRef<HTMLDialogElement>(null);
+  const fokusKoraka = useRef<HTMLHeadingElement>(null);
   const [salje, setSalje] = useState(false);
   const [greska, setGreska] = useState('');
+  const [greskaRedoslijeda, setGreskuRedoslijeda] = useState('');
+  const [biraTip, setBiraTip] = useState(akcija.vrsta === 'dodaj');
+  const [odabraniTip, setOdabraniTip] = useState<TipAktivnosti | null>(null);
+  const [imaIzmjena, setImaIzmjena] = useState(false);
+  const [ucitanoPitanje, setUcitanoPitanje] = useState<Awaited<ReturnType<typeof ucitajPitanje>>>();
+  const [greskaPitanja, setGreskuPitanja] = useState('');
+  const [pokusajUcitavanja, setPokusajUcitavanja] = useState(0);
   const aktivnost = akcija.vrsta === 'dodaj' ? null : akcija.aktivnost;
   const brise = akcija.vrsta === 'obrisi';
-  const naslov = brise ? 'Obriši aktivnost' : aktivnost ? 'Uredi aktivnost' : 'Dodaj aktivnost';
+  const tip = aktivnost ? tipovi?.find(({ id }) => id === aktivnost.idTipa) : odabraniTip;
+  const jePitanje = !brise && tip?.oznaka.toLowerCase() === 'pitanje';
+  const idPitanja = jePitanje ? aktivnost?.id : undefined;
+  const cekaPodatke = (jePitanje && idPitanja !== undefined && ucitanoPitanje === undefined)
+    || (akcija.vrsta === 'uredi' && tipovi === null);
+  const naslov = brise ? 'Obriši aktivnost' : biraTip ? 'Izaberi tip aktivnosti'
+    : `${aktivnost ? 'Uredi aktivnost' : 'Dodaj aktivnost'}${tip ? ` – ${tip.naziv}` : ''}`;
 
   useEffect(() => {
     if (!dijalog.current?.open) dijalog.current?.showModal();
   }, []);
 
+  useEffect(() => {
+    if (akcija.vrsta === 'dodaj') fokusKoraka.current?.focus();
+  }, [akcija.vrsta, biraTip]);
+
+  useEffect(() => {
+    if (idPitanja === undefined) return;
+    const kontroler = new AbortController();
+    ucitajPitanje(idPitanja, kontroler.signal).then((rezultat) => {
+      if (!kontroler.signal.aborted) setUcitanoPitanje(rezultat);
+    }).catch((error) => {
+      if (!kontroler.signal.aborted) {
+        setGreskuPitanja(error instanceof Error ? error.message : 'Učitavanje pitanja nije uspjelo.');
+      }
+    });
+    return () => kontroler.abort();
+  }, [idPitanja, pokusajUcitavanja]);
+
+  function dozvoliZatvaranje() {
+    return !salje && (!imaIzmjena || window.confirm('Imaš nesačuvane izmjene. Želiš li ih odbaciti?'));
+  }
+
   async function potvrdi(event: FormEvent<HTMLFormElement>) {
+    if (event.target !== event.currentTarget) return;
     event.preventDefault();
-    if (salje) return;
+    const idTipa = aktivnost?.idTipa ?? odabraniTip?.id;
+    if (salje || cekaPodatke || (!brise && (biraTip || idTipa === undefined))) return;
     const podaci = new FormData(event.currentTarget);
     setGreska('');
+    setGreskuRedoslijeda('');
+    const redniBroj = Number(podaci.get('redniBroj'));
+    if (!brise && aktivnostiNivoa.some((stavka) => stavka.redniBroj === redniBroj && stavka.id !== aktivnost?.id)) {
+      setGreskuRedoslijeda('Ovaj redni broj je već zauzet na odabranom nivou.');
+      return;
+    }
     setSalje(true);
 
     try {
-      const putanja = aktivnost ? `/api/aktivnosti/${aktivnost.id}` : '/api/aktivnosti';
+      const osnovniPodaci = {
+        idNivoa,
+        idTipa,
+        redniBroj,
+        uputstvo: String(podaci.get('uputstvo') ?? '').trim() || null,
+        tezina: podaci.get('tezina'),
+        brojBodova: Number(podaci.get('brojBodova')),
+      };
+      const pitanje = jePitanje ? procitajPitanje(podaci) : null;
+      const postojecaKonfiguracija = ucitanoPitanje?.pitanje;
+      const promjenaPitanja = pitanje && (!postojecaKonfiguracija
+        || pitanje.tekst !== null
+        || pitanje.idSadrzaja !== postojecaKonfiguracija.idSadrzaja
+        || pitanje.objasnjenje !== (postojecaKonfiguracija.objasnjenje || null)
+        || pitanje.odgovori.length !== postojecaKonfiguracija.odgovori.length
+        || pitanje.odgovori.some((stavka, indeks) => {
+          const prethodna = postojecaKonfiguracija.odgovori[indeks];
+          return stavka.idSadrzaja !== prethodna.idSadrzaja || stavka.redniBroj !== prethodna.redniBroj
+            || stavka.jeTacan !== prethodna.jeTacan;
+        }));
+      const resurs = promjenaPitanja ? '/api/admin/aktivnosti/pitanja' : '/api/aktivnosti';
+      const putanja = aktivnost ? `${resurs}/${aktivnost.id}` : resurs;
       const odgovor = brise
         ? await posaljiAdminZahtjev('DELETE', putanja)
-        : await posaljiAdminZahtjev(aktivnost ? 'PUT' : 'POST', putanja, {
-          idNivoa,
-          idTipa: Number(podaci.get('idTipa')),
-          redniBroj: Number(podaci.get('redniBroj')),
-          uputstvo: String(podaci.get('uputstvo') ?? '').trim() || null,
-          tezina: podaci.get('tezina'),
-          brojBodova: Number(podaci.get('brojBodova')),
-        });
+        : await posaljiAdminZahtjev(aktivnost ? 'PUT' : 'POST', putanja,
+          promjenaPitanja ? { aktivnost: osnovniPodaci, pitanje } : osnovniPodaci);
       if (odgovor.status === 401 || odgovor.status === 403) {
         throw new Error('Provjerite administratorsku sesiju pa pokušajte ponovo.');
       }
@@ -76,47 +138,57 @@ export function AktivnostDijalog({
     }
   }
 
-  return <dialog ref={dijalog} className="admin-dijalog" aria-label={naslov} onClose={onZatvori}
-    onCancel={(event) => { if (salje) event.preventDefault(); }}>
-    <h2>{naslov}</h2>
+  return <dialog ref={dijalog}
+    className={`admin-dijalog${biraTip ? ' aktivnost-izbor-dijalog' : jePitanje ? ' aktivnost-pitanje-dijalog' : ''}`}
+    aria-label={naslov} onClose={(event) => { if (event.target === event.currentTarget) onZatvori(); }}
+    onCancel={(event) => {
+      if (event.target === event.currentTarget && !dozvoliZatvaranje()) event.preventDefault();
+    }}>
+    <h2 ref={fokusKoraka} tabIndex={-1}>{naslov}</h2>
     <p>Nivo: <strong>{nazivNivoa}</strong></p>
-    <form onSubmit={potvrdi}>
+    {biraTip && <>
+      <IzborTipaAktivnosti tipovi={tipovi ?? []} odabraniId={odabraniTip?.id} onOdaberi={(izabrani) => {
+        setOdabraniTip(izabrani);
+        setBiraTip(false);
+      }} />
+      <div className="nova-igrica-akcije">
+        <button type="button" className="secondary" onClick={() => {
+          if (dozvoliZatvaranje()) dijalog.current?.close();
+        }}>Otkaži</button>
+      </div>
+    </>}
+    <div hidden={biraTip}>
+    <form onSubmit={potvrdi} onChange={(event) => {
+      setImaIzmjena(true);
+      if (event.target instanceof HTMLInputElement && event.target.name === 'redniBroj') setGreskuRedoslijeda('');
+    }}>
       {brise ? <p>Želiš li obrisati aktivnost broj {aktivnost?.redniBroj}?</p> : <>
-        <label>Tip aktivnosti
-          <select name="idTipa" defaultValue={aktivnost?.idTipa ?? ''} required>
-            <option value="" disabled>Odaberite tip</option>
-            {tipovi?.map(({ id, naziv }) => <option key={id} value={id}>{naziv}</option>)}
-          </select>
-        </label>
-        <label>Uputstvo
-          <textarea name="uputstvo" maxLength={1000} rows={3} defaultValue={aktivnost?.uputstvo ?? ''} />
-        </label>
-        <label>Težina
-          <select name="tezina" defaultValue={aktivnost?.tezina ?? 'LAKO'}>
-            <option value="LAKO">Lako</option>
-            <option value="SREDNJE">Srednje</option>
-            <option value="TESKO">Teško</option>
-          </select>
-        </label>
-        <div className="uzrasti">
-          <label>Redni broj
-            <input name="redniBroj" type="number" min={1} max={2147483647} required
-              defaultValue={aktivnost?.redniBroj ?? sljedeciBroj} />
-          </label>
-          <label>Bodovi
-            <input name="brojBodova" type="number" min={0} max={2147483647} required
-              defaultValue={aktivnost?.brojBodova ?? 0} />
-          </label>
-        </div>
+        <OsnovniPodaciAktivnosti aktivnost={aktivnost} sljedeciBroj={sljedeciBroj} greskaRedoslijeda={greskaRedoslijeda} />
+        {jePitanje && !cekaPodatke && <FormaPitanja ucitano={ucitanoPitanje ?? null}
+          onIzmjena={() => setImaIzmjena(true)} />}
+        {greskaPitanja ? <>
+          <p className="error" role="alert">{greskaPitanja}</p>
+          <button type="button" className="secondary" onClick={() => {
+            setGreskuPitanja('');
+            setPokusajUcitavanja((pokusaj) => pokusaj + 1);
+          }}>Pokušaj ponovo</button>
+        </> : cekaPodatke && <p role="status">Učitavanje podataka…</p>}
       </>}
       {greska && <p className="error" role="alert">{greska}</p>}
       <div className="nova-igrica-akcije">
-        <button type="button" className="secondary" disabled={salje} onClick={() => dijalog.current?.close()}>Otkaži</button>
+        {akcija.vrsta === 'dodaj' && <button type="button" className="secondary" disabled={salje} onClick={() => {
+          setGreska('');
+          setBiraTip(true);
+        }}>Nazad na tipove</button>}
+        <button type="button" className="secondary" disabled={salje} autoFocus={brise} onClick={() => {
+          if (dozvoliZatvaranje()) dijalog.current?.close();
+        }}>Otkaži</button>
         <button type="submit" className={brise ? 'primary opasna-akcija' : 'primary'}
-          disabled={salje || (!brise && !tipovi?.length)}>
+          disabled={salje || cekaPodatke || (!aktivnost && !odabraniTip)}>
           {salje ? (brise ? 'Brisanje…' : 'Čuvanje…') : brise ? 'Obriši' : 'Sačuvaj'}
         </button>
       </div>
     </form>
+    </div>
   </dialog>;
 }
