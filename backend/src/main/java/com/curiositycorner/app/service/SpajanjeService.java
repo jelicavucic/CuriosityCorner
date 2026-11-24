@@ -42,6 +42,10 @@ public class SpajanjeService {
     @Transactional(readOnly = true)
     public SpajanjeResponse pronadji(Long id) {
         provjeriTip(aktivnosti.findById(id).orElseThrow(() -> nemaAktivnosti(id)));
+        return ucitajKonfiguraciju(id);
+    }
+
+    private SpajanjeResponse ucitajKonfiguraciju(Long id) {
         Spajanje konfiguracija = spajanja.findById(id).orElseThrow(() ->
                 new ApiException(HttpStatus.NOT_FOUND, "Konfiguracija spajanja jos nije unesena."));
         return uResponse(id, konfiguracija, parovi.findByIdAktivnostiOrderByRedniBrojAsc(id));
@@ -49,7 +53,30 @@ public class SpajanjeService {
 
     @Transactional(readOnly = true)
     public SpajanjeRaspored pregled(Long id) {
-        SpajanjeResponse konfiguracija = pronadji(id);
+        return napraviRaspored(pronadji(id));
+    }
+
+    @Transactional(readOnly = true)
+    public SpajanjeRaspored rasporedZaIgru(Long id) {
+        return napraviRaspored(pronadjiZaIgru(id));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean provjeriPar(Long id, Integer lijevo, Integer desno) {
+        return pronadjiZaIgru(id).parovi().stream().anyMatch(par ->
+                par.idLijevogSadrzaja().equals(lijevo) && par.idDesnogSadrzaja().equals(desno));
+    }
+
+    private SpajanjeResponse pronadjiZaIgru(Long id) {
+        Aktivnost aktivnost = aktivnosti.findById(id).orElseThrow(() -> nemaAktivnosti(id));
+        if (!"AKTIVNA".equalsIgnoreCase(aktivnost.getNivo().getIgrica().getStatus())) {
+            throw nemaAktivnosti(id);
+        }
+        provjeriTip(aktivnost);
+        return ucitajKonfiguraciju(id);
+    }
+
+    private SpajanjeRaspored napraviRaspored(SpajanjeResponse konfiguracija) {
         var lijevo = konfiguracija.parovi().stream().map(SpajanjeResponse.Par::idLijevogSadrzaja).toList();
         var desno = new ArrayList<>(konfiguracija.parovi().stream()
                 .map(SpajanjeResponse.Par::idDesnogSadrzaja).toList());

@@ -53,6 +53,7 @@ class AdminAuthTests {
         JsonNode tokenPrijePrijave = token();
         String sesijaPrijePrijave = idSesije();
         assertEquals(401, posalji("POST", "/api/kategorije", "{}", tokenPrijePrijave).statusCode());
+        assertEquals(401, posalji("POST", "/api/admin/aktivnosti/pitanja", "{}", tokenPrijePrijave).statusCode());
         assertEquals(401, posalji("POST", "/api/admin/auth/login",
                 """
                 {"korisnickoIme":"admin","lozinka":"pogresna"}
@@ -69,6 +70,8 @@ class AdminAuthTests {
 
         JsonNode tokenAdmina = token();
         assertEquals(400, posalji("POST", "/api/kategorije", "{}", tokenAdmina).statusCode());
+        assertEquals(400, posalji("POST", "/api/admin/aktivnosti/pitanja", "{}", tokenAdmina).statusCode());
+        assertEquals(400, posalji("PUT", "/api/admin/aktivnosti/pitanja/1", "{}", tokenAdmina).statusCode());
         assertEquals(204, posalji("POST", "/api/admin/auth/logout", null, tokenAdmina).statusCode());
         assertEquals(401, posalji("GET", "/api/admin/auth/me", null, null).statusCode());
     }

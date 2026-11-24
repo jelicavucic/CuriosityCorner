@@ -7,6 +7,7 @@ import java.util.List;
 
 public record RazvrstavanjeRequest(@NotEmpty List<@NotNull @Valid Grupa> grupe) {
     public record Grupa(@NotBlank @Size(max = 150) String naziv,
+                        @Positive Integer idSadrzaja,
                         @NotEmpty List<@NotNull @Valid Stavka> stavke) { }
 
     public record Stavka(@NotNull @Positive Integer idSadrzaja) { }
