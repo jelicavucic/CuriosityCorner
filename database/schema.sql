@@ -187,9 +187,13 @@ CREATE TABLE IF NOT EXISTS `curiosity_corner`.`grupa_razvrstavanja` (
   `IdGrupe` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `IdAktivnosti` BIGINT UNSIGNED NOT NULL,
   `Naziv` VARCHAR(150) NOT NULL,
+  `IdSadrzaja` INT NULL,
   PRIMARY KEY (`IdGrupe`),
   UNIQUE INDEX `UQ_GRUPA_RAZVRSTAVANJA_AKTIVNOST_NAZIV` (`IdAktivnosti` ASC, `Naziv` ASC) VISIBLE,
   UNIQUE INDEX `UQ_GRUPA_RAZVRSTAVANJA_AKTIVNOST_ID_GRUPE` (`IdAktivnosti` ASC, `IdGrupe` ASC) VISIBLE,
+  CONSTRAINT `FK_GRUPA_RAZVRSTAVANJA_SADRZAJ`
+    FOREIGN KEY (`IdSadrzaja`)
+    REFERENCES `curiosity_corner`.`sadrzaj` (`idSadrzaja`),
   CONSTRAINT `FK_GRUPA_RAZVRSTAVANJA_RAZVRSTAVANJE`
     FOREIGN KEY (`IdAktivnosti`)
     REFERENCES `curiosity_corner`.`razvrstavanje` (`IdAktivnosti`)
@@ -219,6 +223,16 @@ ENGINE = InnoDB;
 -- -----------------------------------------------------
 -- Table `curiosity_corner`.`igrac`
 -- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `curiosity_corner`.`avatar` (
+  `idAvatara` INT NOT NULL AUTO_INCREMENT,
+  `Naziv` VARCHAR(255) NOT NULL,
+  `PutanjaSlike` VARCHAR(255) NOT NULL,
+  `Aktivan` BOOLEAN NOT NULL,
+  PRIMARY KEY (`idAvatara`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `curiosity_corner`.`igrac` (
   `IdIgraca` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `Ime` VARCHAR(150) NOT NULL,
@@ -828,15 +842,54 @@ COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
--- Table `curiosity_corner`.`avatar`
+-- Usklađivanje postojećih baza
 -- -----------------------------------------------------
-ALTER TABLE curiosity_corner.igrac
-    ADD COLUMN idAvatara INT NULL DEFAULT NULL,
-    ADD CONSTRAINT fk_igrac_avatar1
-        FOREIGN KEY (idAvatara)
-        REFERENCES curiosity_corner.avatar (idAvatara)
-        ON DELETE SET NULL;
-SHOW CREATE TABLE curiosity_corner.igrac;
+SET @cc_ddl = IF(EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = 'curiosity_corner' AND TABLE_NAME = 'igrac' AND COLUMN_NAME = 'idAvatara'
+), 'DO 0', 'ALTER TABLE igrac ADD COLUMN idAvatara INT NULL DEFAULT NULL');
+PREPARE cc_schema FROM @cc_ddl;
+EXECUTE cc_schema;
+DEALLOCATE PREPARE cc_schema;
+
+SET @cc_ddl = IF(EXISTS (
+    SELECT 1 FROM information_schema.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = 'curiosity_corner' AND TABLE_NAME = 'igrac'
+      AND COLUMN_NAME = 'idAvatara' AND REFERENCED_TABLE_NAME = 'avatar'
+), 'DO 0', 'ALTER TABLE igrac ADD CONSTRAINT fk_igrac_avatar1
+    FOREIGN KEY (idAvatara) REFERENCES avatar (idAvatara) ON DELETE SET NULL');
+PREPARE cc_schema FROM @cc_ddl;
+EXECUTE cc_schema;
+DEALLOCATE PREPARE cc_schema;
+
+SET @cc_ddl = IF(EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = 'curiosity_corner' AND TABLE_NAME = 'grupa_razvrstavanja' AND COLUMN_NAME = 'IdSadrzaja'
+), 'DO 0', 'ALTER TABLE grupa_razvrstavanja ADD COLUMN IdSadrzaja INT NULL');
+PREPARE cc_schema FROM @cc_ddl;
+EXECUTE cc_schema;
+DEALLOCATE PREPARE cc_schema;
+
+SET @cc_ddl = IF(EXISTS (
+    SELECT 1 FROM information_schema.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = 'curiosity_corner' AND TABLE_NAME = 'grupa_razvrstavanja'
+      AND COLUMN_NAME = 'IdSadrzaja' AND REFERENCED_TABLE_NAME = 'sadrzaj'
+), 'DO 0', 'ALTER TABLE grupa_razvrstavanja ADD CONSTRAINT FK_GRUPA_RAZVRSTAVANJA_SADRZAJ
+    FOREIGN KEY (IdSadrzaja) REFERENCES sadrzaj (idSadrzaja)');
+PREPARE cc_schema FROM @cc_ddl;
+EXECUTE cc_schema;
+DEALLOCATE PREPARE cc_schema;
+
+SET @cc_tip_igraca = (
+    SELECT COLUMN_TYPE FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = 'curiosity_corner' AND TABLE_NAME = 'recenzija'
+      AND COLUMN_NAME = 'IdIgraca' AND IS_NULLABLE = 'NO'
+);
+SET @cc_ddl = IF(@cc_tip_igraca IS NULL, 'DO 0',
+    CONCAT('ALTER TABLE recenzija MODIFY COLUMN IdIgraca ', @cc_tip_igraca, ' NULL DEFAULT NULL'));
+PREPARE cc_schema FROM @cc_ddl;
+EXECUTE cc_schema;
+DEALLOCATE PREPARE cc_schema;
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;

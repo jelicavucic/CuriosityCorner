@@ -25,7 +25,8 @@ public interface SadrzajRepository extends JpaRepository<Sadrzaj, Integer> {
                  OR EXISTS (SELECT 1 FROM kartica_memorije WHERE idSadrzaja = :id)
                  OR EXISTS (SELECT 1 FROM par_za_spajanje
                             WHERE idLijevogSadrzaja = :id OR idDesnogSadrzaja = :id)
-                 OR EXISTS (SELECT 1 FROM stavka_razvrstavanja WHERE idSadrzaja = :id))
+                 OR EXISTS (SELECT 1 FROM stavka_razvrstavanja WHERE idSadrzaja = :id)
+                 OR EXISTS (SELECT 1 FROM grupa_razvrstavanja WHERE IdSadrzaja = :id))
             """, nativeQuery = true)
     int koristiSe(@Param("id") Integer id);
 }

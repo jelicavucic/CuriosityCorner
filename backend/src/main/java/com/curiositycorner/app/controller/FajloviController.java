@@ -11,8 +11,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import javax.sound.sampled.AudioFileFormat;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.UnsupportedAudioFileException;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -26,6 +31,7 @@ import java.util.UUID;
 public class FajloviController {
     private static final Map<String, MediaType> TIPOVI = Map.of(
             "png", MediaType.IMAGE_PNG, "jpg", MediaType.IMAGE_JPEG, "gif", MediaType.IMAGE_GIF);
+    private static final MediaType WAV = MediaType.parseMediaType("audio/wav");
     private static final long MAKSIMALNA_VELICINA = 5 * 1024 * 1024;
     private static final int CILJNA_DIMENZIJA = 1600;
     private static final long MAKSIMALNO_PIKSELA = 12_000_000;
@@ -46,23 +52,51 @@ public class FajloviController {
         }
 
         Slika optimizovana = pripremiSliku(slika.getBytes());
-        String naziv = UUID.randomUUID() + "." + optimizovana.format();
+        String putanja = sacuvaj(optimizovana.podaci(), optimizovana.format());
+        return ResponseEntity.created(URI.create(putanja)).body(Map.of("putanjaSlike", putanja));
+    }
+
+    @PostMapping(value = "/api/admin/fajlovi/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, String>> dodajAudio(@RequestParam("audio") MultipartFile audio) throws IOException {
+        if (audio.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Odaberi audio zapis.");
+        }
+        if (audio.getSize() > MAKSIMALNA_VELICINA) {
+            throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "Audio zapis smije imati najvise 5 MiB.");
+        }
+        byte[] podaci = audio.getBytes();
+        try (var ulaz = new ByteArrayInputStream(podaci)) {
+            var format = AudioSystem.getAudioFileFormat(ulaz);
+            var kodiranje = format.getFormat().getEncoding();
+            if (!AudioFileFormat.Type.WAVE.equals(format.getType()) || format.getFrameLength() <= 0
+                    || !(AudioFormat.Encoding.PCM_SIGNED.equals(kodiranje)
+                         || AudioFormat.Encoding.PCM_UNSIGNED.equals(kodiranje))) {
+                throw new UnsupportedAudioFileException();
+            }
+        } catch (UnsupportedAudioFileException | IOException e) {
+            throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Odaberi ispravan PCM WAV audio zapis.");
+        }
+        String putanja = sacuvaj(podaci, "wav");
+        return ResponseEntity.created(URI.create(putanja)).body(Map.of("putanjaAudioZapisa", putanja));
+    }
+
+    private String sacuvaj(byte[] podaci, String format) throws IOException {
+        String naziv = UUID.randomUUID() + "." + format;
         Files.createDirectories(direktorijum);
-        Path privremeni = Files.createTempFile(direktorijum, "slika-", ".tmp");
+        Path privremeni = Files.createTempFile(direktorijum, "fajl-", ".tmp");
         try {
-            Files.write(privremeni, optimizovana.podaci());
+            Files.write(privremeni, podaci);
             Files.move(privremeni, direktorijum.resolve(naziv));
         } finally {
             Files.deleteIfExists(privremeni);
         }
 
-        String putanja = "/api/fajlovi/" + naziv;
-        return ResponseEntity.created(URI.create(putanja)).body(Map.of("putanjaSlike", putanja));
+        return "/api/fajlovi/" + naziv;
     }
 
     @GetMapping("/api/fajlovi/{naziv}")
     public ResponseEntity<Resource> preuzmi(@PathVariable String naziv) throws IOException {
-        if (!naziv.matches("[A-Za-z0-9][A-Za-z0-9._-]*\\.(png|jpg|jpeg|gif)") || naziv.contains("..")) {
+        if (!naziv.matches("[A-Za-z0-9][A-Za-z0-9._-]*\\.(png|jpg|jpeg|gif|wav)") || naziv.contains("..")) {
             return ResponseEntity.notFound().build();
         }
         Path fajl = direktorijum.resolve(naziv);
@@ -70,8 +104,8 @@ public class FajloviController {
             return ResponseEntity.notFound().build();
         }
         String format = naziv.substring(naziv.lastIndexOf('.') + 1);
-        return ResponseEntity.ok().contentType(TIPOVI.get(format.equals("jpeg") ? "jpg" : format))
-                .contentLength(Files.size(fajl)).body(new UrlResource(fajl.toUri()));
+        MediaType tip = format.equals("wav") ? WAV : TIPOVI.get(format.equals("jpeg") ? "jpg" : format);
+        return ResponseEntity.ok().contentType(tip).body(new UrlResource(fajl.toUri()));
     }
 
     private Slika pripremiSliku(byte[] podaci) {

@@ -16,13 +16,18 @@ public class GrupaRazvrstavanja {
     @Column(name = "Naziv", nullable = false, length = 150)
     private String naziv;
 
+    @Column(name = "IdSadrzaja")
+    private Integer idSadrzaja;
+
     protected GrupaRazvrstavanja() { }
 
-    public GrupaRazvrstavanja(Long idAktivnosti, String naziv) {
+    public GrupaRazvrstavanja(Long idAktivnosti, String naziv, Integer idSadrzaja) {
         this.idAktivnosti = idAktivnosti;
         this.naziv = naziv;
+        this.idSadrzaja = idSadrzaja;
     }
 
     public Long getId() { return id; }
     public String getNaziv() { return naziv; }
+    public Integer getIdSadrzaja() { return idSadrzaja; }
 }

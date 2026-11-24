@@ -5,6 +5,15 @@ import { IzborTipaAktivnosti } from './izbor-tipa-aktivnosti';
 import { FormaPitanja, procitajPitanje, ucitajPitanje } from './forma-pitanje';
 import { FormaSpajanja, procitajSpajanje, ucitajSpajanje } from './forma-spajanja';
 import { FormaMemorije, procitajMemoriju, ucitajMemoriju } from './forma-memorije';
+import { FormaRazvrstavanja, procitajRazvrstavanje, ucitajRazvrstavanje } from './forma-razvrstavanja';
+import { FormaBajke, FormaSlaganjaSlova, ucitajKonfiguraciju, type Bajka, type SlaganjeSlova } from './forma-tekstualne-aktivnosti';
+import { FormaOsmosmjerke, type Osmosmjerka } from './forma-osmosmjerke';
+
+const dodatniTipovi = {
+  'slaganje-slova': { resurs: 'slaganja-slova', polje: 'slaganjeSlova' },
+  osmosmjerka: { resurs: 'osmosmjerke', polje: 'osmosmjerka' },
+  bajka: { resurs: 'bajke', polje: 'bajka' },
+} as const;
 export type Aktivnost = {
   id: number;
   idNivoa: number;
@@ -35,6 +44,8 @@ export function AktivnostDijalog({
   const dijalog = useRef<HTMLDialogElement>(null);
   const fokusKoraka = useRef<HTMLHeadingElement>(null);
   const [salje, setSalje] = useState(false);
+  const [brojPrenosa, setBrojPrenosa] = useState(0);
+  const zauzeto = salje || brojPrenosa > 0;
   const [greska, setGreska] = useState('');
   const [greskaRedoslijeda, setGreskuRedoslijeda] = useState('');
   const [biraTip, setBiraTip] = useState(akcija.vrsta === 'dodaj');
@@ -43,6 +54,8 @@ export function AktivnostDijalog({
   const [ucitanoPitanje, setUcitanoPitanje] = useState<Awaited<ReturnType<typeof ucitajPitanje>>>();
   const [ucitanoSpajanje, setUcitanoSpajanje] = useState<Awaited<ReturnType<typeof ucitajSpajanje>>>();
   const [ucitanaMemorija, setUcitanuMemoriju] = useState<Awaited<ReturnType<typeof ucitajMemoriju>>>();
+  const [ucitanoRazvrstavanje, setUcitanoRazvrstavanje] = useState<Awaited<ReturnType<typeof ucitajRazvrstavanje>>>();
+  const [ucitanaKonfiguracija, setUcitanuKonfiguraciju] = useState<SlaganjeSlova | Bajka | Osmosmjerka | null>();
   const [greskaUcitavanja, setGreskuUcitavanja] = useState('');
   const [pokusajUcitavanja, setPokusajUcitavanja] = useState(0);
   const aktivnost = akcija.vrsta === 'dodaj' ? null : akcija.aktivnost;
@@ -51,12 +64,20 @@ export function AktivnostDijalog({
   const jePitanje = !brise && tip?.oznaka.toLowerCase() === 'pitanje';
   const jeSpajanje = !brise && tip?.oznaka.toLowerCase() === 'spajanje';
   const jeMemorija = !brise && tip?.oznaka.toLowerCase() === 'memorija';
+  const jeRazvrstavanje = !brise && tip?.oznaka.toLowerCase() === 'razvrstavanje';
+  const oznaka = tip?.oznaka.toLowerCase() ?? '';
+  const dodatniTip = !brise && Object.hasOwn(dodatniTipovi, oznaka)
+    ? oznaka as keyof typeof dodatniTipovi : undefined;
+  const idKonfiguracije = dodatniTip ? aktivnost?.id : undefined;
   const idPitanja = jePitanje ? aktivnost?.id : undefined;
   const idSpajanja = jeSpajanje ? aktivnost?.id : undefined;
   const idMemorije = jeMemorija ? aktivnost?.id : undefined;
+  const idRazvrstavanja = jeRazvrstavanje ? aktivnost?.id : undefined;
   const cekaPodatke = (jePitanje && idPitanja !== undefined && ucitanoPitanje === undefined)
     || (idSpajanja !== undefined && ucitanoSpajanje === undefined)
     || (idMemorije !== undefined && ucitanaMemorija === undefined)
+    || (idRazvrstavanja !== undefined && ucitanoRazvrstavanje === undefined)
+    || (idKonfiguracije !== undefined && ucitanaKonfiguracija === undefined)
     || (akcija.vrsta === 'uredi' && tipovi === null);
   const naslov = brise ? 'Obriši aktivnost' : biraTip ? 'Izaberi tip aktivnosti'
     : `${aktivnost ? 'Uredi aktivnost' : 'Dodaj aktivnost'}${tip ? ` – ${tip.naziv}` : ''}`;
@@ -108,15 +129,42 @@ export function AktivnostDijalog({
     return () => kontroler.abort();
   }, [idMemorije, pokusajUcitavanja]);
 
+  useEffect(() => {
+    if (idRazvrstavanja === undefined) return;
+    const kontroler = new AbortController();
+    ucitajRazvrstavanje(idRazvrstavanja, kontroler.signal).then((rezultat) => {
+      if (!kontroler.signal.aborted) setUcitanoRazvrstavanje(rezultat);
+    }).catch((error) => {
+      if (!kontroler.signal.aborted) {
+        setGreskuUcitavanja(error instanceof Error ? error.message : 'Učitavanje razvrstavanja nije uspjelo.');
+      }
+    });
+    return () => kontroler.abort();
+  }, [idRazvrstavanja, pokusajUcitavanja]);
+
+  useEffect(() => {
+    if (idKonfiguracije === undefined || !dodatniTip) return;
+    const kontroler = new AbortController();
+    ucitajKonfiguraciju<SlaganjeSlova | Bajka | Osmosmjerka>(idKonfiguracije, dodatniTip, kontroler.signal)
+      .then((rezultat) => {
+        if (!kontroler.signal.aborted) setUcitanuKonfiguraciju(rezultat);
+      }).catch((error) => {
+        if (!kontroler.signal.aborted) {
+          setGreskuUcitavanja(error instanceof Error ? error.message : 'Učitavanje konfiguracije nije uspjelo.');
+        }
+      });
+    return () => kontroler.abort();
+  }, [idKonfiguracije, dodatniTip, pokusajUcitavanja]);
+
   function dozvoliZatvaranje() {
-    return !salje && (!imaIzmjena || window.confirm('Imaš nesačuvane izmjene. Želiš li ih odbaciti?'));
+    return !zauzeto && (!imaIzmjena || window.confirm('Imaš nesačuvane izmjene. Želiš li ih odbaciti?'));
   }
 
   async function potvrdi(event: FormEvent<HTMLFormElement>) {
     if (event.target !== event.currentTarget) return;
     event.preventDefault();
     const idTipa = aktivnost?.idTipa ?? odabraniTip?.id;
-    if (salje || cekaPodatke || (!brise && (biraTip || idTipa === undefined))) return;
+    if (zauzeto || cekaPodatke || (!brise && (biraTip || idTipa === undefined))) return;
     const podaci = new FormData(event.currentTarget);
     setGreska('');
     setGreskuRedoslijeda('');
@@ -159,9 +207,16 @@ export function AktivnostDijalog({
             || par.desno.idSadrzaja !== prethodni.idDesnogSadrzaja;
         }));
       const memorija = jeMemorija ? procitajMemoriju(podaci, ucitanaMemorija) : null;
-      const resurs = memorija ? '/api/admin/aktivnosti/memorije' : promjenaPitanja ? '/api/admin/aktivnosti/pitanja'
+      const razvrstavanje = jeRazvrstavanje ? procitajRazvrstavanje(podaci, ucitanoRazvrstavanje) : null;
+      const konfiguracija = dodatniTip ? procitajKonfiguraciju(dodatniTip, podaci, ucitanaKonfiguracija) : null;
+      const dodatniResurs = dodatniTip && konfiguracija ? dodatniTipovi[dodatniTip] : null;
+      const resurs = dodatniResurs ? `/api/admin/aktivnosti/${dodatniResurs.resurs}`
+        : razvrstavanje ? '/api/admin/aktivnosti/razvrstavanja'
+        : memorija ? '/api/admin/aktivnosti/memorije' : promjenaPitanja ? '/api/admin/aktivnosti/pitanja'
         : promjenaSpajanja ? '/api/admin/aktivnosti/spajanja' : '/api/aktivnosti';
-      const zahtjev = memorija ? { aktivnost: osnovniPodaci, memorija } : promjenaPitanja ? { aktivnost: osnovniPodaci, pitanje }
+      const zahtjev = dodatniResurs ? { aktivnost: osnovniPodaci, [dodatniResurs.polje]: konfiguracija }
+        : razvrstavanje ? { aktivnost: osnovniPodaci, razvrstavanje }
+        : memorija ? { aktivnost: osnovniPodaci, memorija } : promjenaPitanja ? { aktivnost: osnovniPodaci, pitanje }
         : promjenaSpajanja ? { aktivnost: osnovniPodaci, spajanje } : osnovniPodaci;
       const putanja = aktivnost ? `${resurs}/${aktivnost.id}` : resurs;
       const odgovor = brise
@@ -187,6 +242,10 @@ export function AktivnostDijalog({
     }
   }
 
+  const medijAkcije = {
+    onIzmjena: () => setImaIzmjena(true),
+    onSlanje: (razlika: number) => setBrojPrenosa((broj) => broj + razlika),
+  };
   return <dialog ref={dijalog}
     className={`admin-dijalog${biraTip ? ' aktivnost-izbor-dijalog' : jePitanje ? ' aktivnost-pitanje-dijalog' : ''}`}
     aria-label={naslov} onClose={(event) => { if (event.target === event.currentTarget) onZatvori(); }}
@@ -219,6 +278,14 @@ export function AktivnostDijalog({
           onIzmjena={() => setImaIzmjena(true)} />}
         {jeMemorija && !cekaPodatke && <FormaMemorije ucitano={ucitanaMemorija ?? null}
           onIzmjena={() => setImaIzmjena(true)} />}
+        {jeRazvrstavanje && !cekaPodatke && <FormaRazvrstavanja ucitano={ucitanoRazvrstavanje ?? null}
+          onIzmjena={() => setImaIzmjena(true)} />}
+        {dodatniTip === 'slaganje-slova' && !cekaPodatke && <FormaSlaganjaSlova
+          ucitano={ucitanaKonfiguracija as SlaganjeSlova ?? null} {...medijAkcije} />}
+        {dodatniTip === 'bajka' && !cekaPodatke && <FormaBajke
+          ucitano={ucitanaKonfiguracija as Bajka ?? null} {...medijAkcije} />}
+        {dodatniTip === 'osmosmjerka' && !cekaPodatke && <FormaOsmosmjerke
+          ucitano={ucitanaKonfiguracija as Osmosmjerka ?? null} onIzmjena={medijAkcije.onIzmjena} />}
         {greskaUcitavanja ? <>
           <p className="error" role="alert">{greskaUcitavanja}</p>
           <button type="button" className="secondary" onClick={() => {
@@ -229,19 +296,45 @@ export function AktivnostDijalog({
       </>}
       {greska && <p className="error" role="alert">{greska}</p>}
       <div className="nova-igrica-akcije">
-        {akcija.vrsta === 'dodaj' && <button type="button" className="secondary" disabled={salje} onClick={() => {
+        {akcija.vrsta === 'dodaj' && <button type="button" className="secondary" disabled={zauzeto} onClick={() => {
           setGreska('');
           setBiraTip(true);
         }}>Nazad na tipove</button>}
-        <button type="button" className="secondary" disabled={salje} autoFocus={brise} onClick={() => {
+        <button type="button" className="secondary" disabled={zauzeto} autoFocus={brise} onClick={() => {
           if (dozvoliZatvaranje()) dijalog.current?.close();
         }}>Otkaži</button>
         <button type="submit" className={brise ? 'primary opasna-akcija' : 'primary'}
-          disabled={salje || cekaPodatke || (!aktivnost && !odabraniTip)}>
+          disabled={zauzeto || cekaPodatke || (!aktivnost && !odabraniTip)}>
           {salje ? (brise ? 'Brisanje…' : 'Čuvanje…') : brise ? 'Obriši' : 'Sačuvaj'}
         </button>
       </div>
     </form>
     </div>
   </dialog>;
+}
+
+function procitajKonfiguraciju(tip: keyof typeof dodatniTipovi, podaci: FormData,
+  prethodna: SlaganjeSlova | Osmosmjerka | Bajka | null | undefined) {
+  const tekst = (ime: string) => String(podaci.get(ime) ?? '').trim();
+  if (tip === 'osmosmjerka') {
+    const mreza = tekst('osmosmjerka');
+    if (!mreza) throw new Error('Generiši mrežu prije čuvanja.');
+    return prethodna && mreza === JSON.stringify(prethodna) ? null : JSON.parse(mreza) as Osmosmjerka;
+  }
+  if (tip === 'slaganje-slova') {
+    const ciljniTekst = tekst('ciljniTekst');
+    const putanjaSlike = tekst('putanjaSlaganja') || null;
+    if (prethodna && 'ciljniTekst' in prethodna
+      && ciljniTekst === prethodna.ciljniTekst && putanjaSlike === prethodna.putanjaSlike) return null;
+    if (!/\p{L}/u.test(ciljniTekst)) throw new Error('Ciljni tekst mora sadržati bar jedno slovo.');
+    return { ciljniTekst, putanjaSlike };
+  }
+  const bajka = {
+    naslov: tekst('naslovBajke'), tekst: tekst('tekstBajke'),
+    putanjaNaslovneSlike: tekst('putanjaNaslovneSlike') || null,
+    putanjaAudioZapisa: tekst('putanjaAudioZapisa') || null,
+  };
+  if (!bajka.naslov || !bajka.tekst) throw new Error('Unesi naslov i tekst bajke.');
+  return prethodna && 'naslov' in prethodna && Object.entries(bajka).every(([ime, vrijednost]) =>
+    prethodna[ime as keyof Bajka] === vrijednost) ? null : bajka;
 }

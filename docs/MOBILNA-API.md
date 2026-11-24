@@ -108,6 +108,20 @@ Za konfigurirano Spajanje u igrici sa statusom `AKTIVNA` već se mogu koristiti 
 
 Za ekrane za igranje koristite podatke iz API-ja za igranje. Rute pod `/api/admin/` služe admin panelu i mogu sadržati rješenja, uključujući tačne odgovore i koordinate skrivenih riječi. Primjeri javnih GET zahtjeva iz ovog vodiča rade bez admin sesije i CSRF tokena.
 
+### Osmosmjerka
+
+Mreža u admin panelu služi kao pregled. Na mobilnom ekranu prikažite dobijenu mrežu kao pločice sa slovima i bojama usklađenim s ostatkom aplikacije. Svaka ćelija iz mreže je jedna pločica, pa se `LJ`, `NJ` i `DŽ` prikazuju zajedno kad ih mreža pošalje kao jednu ćeliju.
+
+Dok dijete prevlači prstom, privremeno označite pločice na izabranoj putanji. Riječi se mogu birati vodoravno, uspravno ili dijagonalno, u oba smjera. Nakon potvrde ispravnog poteza ostavite riječ obojenu u mreži i označite je kvačicom na listi traženih riječi. Pronađene riječi mogu imati različite boje. Za mobilni prikaz koristite podatke iz API-ja za igranje kad ruta bude dostupna.
+
+### Bajka
+
+Prikažite bajku kao slikovnicu. Na prvoj stranici prikažite naslov i naslovnu sliku ako postoji. Na telefonu neka se vidi jedna stranica odjednom, s dovoljno prostora oko teksta i velikim slovima za čitanje.
+
+Tekst iz bajke podijelite na stranice po odlomcima, a duže odlomke po rečenicama. Prilagodite količinu teksta veličini ekrana i ostavite mogućnost skrolovanja ako se tekst prikazuje većim fontom. Dijete može prevući prstom ulijevo za sljedeću stranicu i udesno za prethodnu. Dodajte dugmad **Prethodna** i **Sljedeća** kao drugi način listanja i prikažite broj stranice, npr. **2 od 5**.
+
+Ako bajka ima audio zapis, ponudite dugme **Slušaj bajku** s kontrolom za pauzu. Audio može nastaviti dok dijete lista. Za ovaj prikaz dovoljan je jedan naslov, tekst i opcionalna naslovna slika i audio. Stranice oblikuje mobilni ekran iz dobijenog teksta kada podaci za igranje budu dostupni.
+
 ## Kad zahtjev zapne
 
 | Šta se desi | Šta prvo provjeriti |

@@ -32,6 +32,7 @@ export function DetaljiIgrice({
   const [akcija, setAkcija] = useState<
     { vrsta: 'dodaj' } | { vrsta: 'uredi' | 'obrisi'; aktivnost: Aktivnost } | null
   >(null);
+  const [porukaAktivnosti, setPorukuAktivnosti] = useState('');
 
   useEffect(() => {
     const zahtjev = new AbortController();
@@ -120,11 +121,13 @@ export function DetaljiIgrice({
         <header>
           <h2 id="naslov-aktivnosti">Aktivnosti{nivo && ` – Nivo ${nivo.redniBroj}: ${nivo.naziv}`}</h2>
           {nivo && <button className="primary" type="button" aria-haspopup="dialog" disabled={!tipovi?.length || !aktivnosti}
-            onClick={() => setAkcija({ vrsta: 'dodaj' })}><Plus size={16} aria-hidden="true" /> Dodaj aktivnost</button>}
+            onClick={() => setAkcija({ vrsta: 'dodaj' })}><Plus size={16} aria-hidden="true" />
+            {aktivnosti && !aktivnostiNivoa.length ? 'Dodaj prvu aktivnost' : 'Dodaj aktivnost'}</button>}
         </header>
         {!nivo && <p>Aktivnosti će se prikazati kada odabereš nivo.</p>}
         {nivo && greskaTipova && <p className="error" role="alert">Učitavanje tipova aktivnosti nije uspjelo.</p>}
         {nivo && greskaAktivnosti && <p className="error" role="alert">Učitavanje aktivnosti nije uspjelo.</p>}
+        {porukaAktivnosti && <p role="status">{porukaAktivnosti}</p>}
         {nivo && !aktivnosti && !greskaAktivnosti && <p role="status">Učitavanje aktivnosti…</p>}
         {nivo && aktivnosti && !aktivnostiNivoa.length && <p>Ovaj nivo još nema aktivnosti.</p>}
         {aktivnostiNivoa.length > 0 && <div className="detalji-tabela-okvir"><table className="detalji-tabela">
@@ -149,6 +152,12 @@ export function DetaljiIgrice({
     {nivo && akcija && <AktivnostDijalog akcija={akcija} idNivoa={nivo.id} nazivNivoa={nivo.naziv}
       aktivnostiNivoa={aktivnostiNivoa}
       sljedeciBroj={(aktivnostiNivoa.at(-1)?.redniBroj ?? 0) + 1} tipovi={tipovi}
-      onSacuvana={onSacuvanaAktivnost} onObrisana={onObrisanaAktivnost} onZatvori={() => setAkcija(null)} />}
+      onSacuvana={(aktivnost) => {
+        onSacuvanaAktivnost(aktivnost);
+        setPorukuAktivnosti(`Aktivnost broj ${aktivnost.redniBroj} je sačuvana.`);
+      }} onObrisana={(id) => {
+        onObrisanaAktivnost(id);
+        setPorukuAktivnosti('Aktivnost je obrisana.');
+      }} onZatvori={() => setAkcija(null)} />}
   </section>;
 }

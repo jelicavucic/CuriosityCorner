@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { odjaviSe, prijaviSe, provjeriSesiju, type Administrator } from './auth';
-import { CalendarDays, Eye, EyeOff, Gamepad2, Layers, LockKeyhole, LogIn, MessageSquareMore, UserRound } from 'lucide-react';
+import { CalendarDays, Eye, EyeOff, Gamepad2, House, Image, Layers, LockKeyhole, LogIn, MessageSquareMore, UserRound, UsersRound } from 'lucide-react';
 import './style.css';
 import { NovaIgrica, ObrisiIgricu, type Igrica } from './igrice';
 import { Kategorije, type Kategorija } from './kategorije';
@@ -11,6 +11,28 @@ import { DetaljiIgrice } from './detalji-igrice';
 import { Sadrzaji } from './sadrzaji';
 import type { Aktivnost } from './aktivnosti';
 
+import { Avatari, type Avatar } from './avatari';
+import { OdgovorNaRecenziju, type OdgovorRecenzije } from './odgovor-na-recenziju';
+import { ChevronDown, CircleCheck, Clock, LogOut, MessageCircle, MessagesSquare, RefreshCw, Star } from 'lucide-react';
+type Recenzija = {
+  id: number;
+  idIgrice: number;
+  idKorisnika: number;
+  datumKreiranja: string;
+  ocjena: number;
+  komentar: string | null;
+  odgovor: OdgovorRecenzije | null;
+};
+
+const stavkeMenija = [
+  { ruta: 'pregled', naziv: 'Pregled', ikona: House },
+  { ruta: 'kategorije', naziv: 'Kategorije', ikona: Layers },
+  { ruta: 'igrice', naziv: 'Igrice', ikona: Gamepad2 },
+  { ruta: 'sadrzaji', naziv: 'Sadržaji', ikona: Image },
+  { ruta: 'avatari', naziv: 'Avatari', ikona: UsersRound },
+  { ruta: 'recenzije', naziv: 'Recenzije', ikona: MessageSquareMore },
+];
+
 function Brend() {
   return <div className="brand"><img src="/logo-mark.png" alt="" />CuriosityCorner</div>;
 }
@@ -19,7 +41,8 @@ function App() {
   const [admin, setAdmin] = useState<Administrator | null>(null);
   const [adresa, setAdresa] = useState(() => window.location.hash);
   const [ruta, upit] = adresa.slice(1).split('?');
-  const prikaz = ruta === 'igrice' || ruta === 'kategorije' || ruta === 'sadrzaji' ? ruta : 'pregled';
+  const prikaz = ruta === 'igrice' || ruta === 'kategorije' || ruta === 'sadrzaji'
+    || ruta === 'avatari' || ruta === 'recenzije' ? ruta : 'pregled';
   const parametri = new URLSearchParams(upit);
   const idDetalja = prikaz === 'igrice' && parametri.has('igrica') ? Number(parametri.get('igrica')) : null;
   parametri.delete('igrica');
@@ -46,8 +69,19 @@ function App() {
   const [porukaNivoa, setPorukaNivoa] = useState('');
   const [aktivnosti, setAktivnosti] = useState<Aktivnost[] | null>(null);
   const [greskaAktivnosti, setGreskaAktivnosti] = useState(false);
-  const [brojAvatara, setBrojAvatara] = useState<number | null>(null);
-  const [brojRecenzija, setBrojRecenzija] = useState<number | null>(null);
+  const [avatari, setAvatare] = useState<Avatar[] | null>(null);
+  const [recenzije, setRecenzije] = useState<Recenzija[] | null>(null);
+  const [greskaAvatara, setGreskuAvatara] = useState('');
+  const [greskaRecenzija, setGreskuRecenzija] = useState('');
+  const [porukaRecenzije, setPorukuRecenzije] = useState('');
+  const [osvjezavanjeRecenzija, setOsvjezavanjeRecenzija] = useState(0);
+  const [ucitavaRecenzije, setUcitavaRecenzije] = useState(false);
+  const bezOdgovora = parametri.get('filter') === 'bez-odgovora';
+  const neodgovoreneRecenzije = recenzije?.filter(({ odgovor }) => !odgovor);
+  const brojBezOdgovora = neodgovoreneRecenzije?.length ?? 0;
+  const samoOdgovorene = parametri.get('filter') === 'odgovorene';
+  const prikazaneRecenzije = bezOdgovora ? neodgovoreneRecenzije
+    : samoOdgovorene ? recenzije?.filter(({ odgovor }) => odgovor) : recenzije;
   const [provjera, setProvjera] = useState(true);
   const [pokusaj, setPokusaj] = useState(0);
   const [provjeraNeuspjela, setProvjeraNeuspjela] = useState(false);
@@ -188,10 +222,13 @@ function App() {
     if (!odgovor.ok) throw new Error('Učitavanje avatara nije uspjelo.');
     return odgovor.json();
   })
-  .then((avatari) => setBrojAvatara(avatari.length))
-    .catch((greska) => {
-      if(!zahtjev.signal.aborted) console.error(greska);
+  .then((podaci: Avatar[]) => {
+    if (!zahtjev.signal.aborted) setAvatare(podaci);
+  })
+    .catch(() => {
+      if (!zahtjev.signal.aborted) setGreskuAvatara('Učitavanje avatara nije uspjelo.');
     });
+    return () => zahtjev.abort();
   }, [admin]);
 
   useEffect(() =>{ 
@@ -199,16 +236,26 @@ function App() {
 
     const zahtjev = new AbortController();
     
-    fetch('/api/admin/recenzije', { signal: zahtjev.signal })
-  .then((odgovor) => {
-    if (!odgovor.ok) throw new Error('Učitavanje recenzija nije uspjelo.');
-    return odgovor.json();
-  })
-  .then((recenzije) => setBrojRecenzija(recenzije.length))
-    .catch((greska) => {
-      if(!zahtjev.signal.aborted) console.error(greska);
-    });
-  }, [admin]);
+    if (prikaz !== 'recenzije' && prikaz !== 'pregled') return;
+    setGreskuRecenzija('');
+    setUcitavaRecenzije(true);
+    fetch('/api/admin/recenzije', { signal: zahtjev.signal, cache: 'no-store' })
+      .then((odgovor) => {
+        if (!odgovor.ok) throw new Error(`Učitavanje recenzija nije uspjelo (HTTP ${odgovor.status}).`);
+        return odgovor.json();
+      })
+      .then((podaci: Recenzija[]) => {
+        if (!Array.isArray(podaci)) throw new Error('Backend nije vratio listu recenzija.');
+        if (!zahtjev.signal.aborted) setRecenzije(podaci);
+      })
+      .catch((greska: Error) => {
+        if (!zahtjev.signal.aborted) setGreskuRecenzija(greska.message);
+      })
+      .finally(() => {
+        if (!zahtjev.signal.aborted) setUcitavaRecenzije(false);
+      });
+    return () => zahtjev.abort();
+  }, [admin, prikaz, osvjezavanjeRecenzija]);
 
   async function prijava(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -257,20 +304,32 @@ function App() {
     return <>
       <header className="toolbar">
         <Brend />
-        <button className="secondary" disabled={salje} onClick={odjava}>
-          {salje ? 'Odjava…' : 'Odjavi se'}
-        </button>
+        <div className="toolbar-nalog">
+          <details>
+            <summary aria-label="Administratorski nalog"><UserRound size={18} aria-hidden="true" />
+              Admin <ChevronDown size={14} aria-hidden="true" /></summary>
+            <div className="toolbar-nalog-detalji">
+              <strong>{admin.ime}</strong>
+              <span>{admin.korisnickoIme}</span>
+            </div>
+          </details>
+          <button type="button" className="toolbar-odjava" disabled={salje} onClick={odjava}>
+            <LogOut size={18} aria-hidden="true" /> {salje ? 'Odjava…' : 'Odjavi se'}
+          </button>
+        </div>
       </header>
       <div className="admin-layout">
         <aside className="sidebar">
           <nav aria-label="Admin meni">
             <ul>
-              <li><a href="#pregled" aria-current={prikaz === 'pregled' ? 'page' : undefined}>Pregled</a></li>
-              <li><a href="#kategorije" aria-current={prikaz === 'kategorije' ? 'page' : undefined}>Kategorije</a></li>
-              <li><a href="#igrice" aria-current={prikaz === 'igrice' ? 'page' : undefined}>Igrice</a></li>
-              <li><a href="#sadrzaji" aria-current={prikaz === 'sadrzaji' ? 'page' : undefined}>Sadržaji</a></li>
-              <li>Avatari</li>
-              <li>Recenzije</li>
+              {stavkeMenija.map(({ ruta, naziv, ikona: Ikona }) => <li key={ruta}>
+                <a href={`#${ruta}`} aria-current={prikaz === ruta ? 'page' : undefined}>
+                  <Ikona size={20} aria-hidden="true" />
+                  <span>{naziv}</span>
+                  {ruta === 'recenzije' && brojBezOdgovora > 0 && <span className="sidebar-broj"
+                    aria-label={`Recenzije bez odgovora: ${brojBezOdgovora}`}>{brojBezOdgovora}</span>}
+                </a>
+              </li>)}
             </ul>
           </nav>
         </aside>
@@ -288,21 +347,23 @@ function App() {
                 </span>
               </button>
 
-            <button type = "button" className = "quick-action" disabled>
+            <a className="quick-action" href="#igrice">
               <CalendarDays size = {28} aria-hidden = "true" />
               <span>
                 <strong>Nova aktivnost</strong>
-                <small>Dodaj aktivnost u postojeću igricu</small>
+                <small>Odaberi igricu i nivo</small>
                 </span>
-                </button>
+                </a>
 
-            <button type = "button" className = "quick-action" disabled>
-              <MessageSquareMore size={28} aria-hidden = "true" />
+            <a className="quick-action" href="#recenzije?filter=bez-odgovora">
+              <MessageSquareMore size={28} aria-hidden="true" />
               <span>
                 <strong>Recenzije bez odgovora</strong>
-                <small>Pogledaj komentare koji čekaju odgovor</small>
+                <small>Pogledaj i odgovori na komentare</small>
                 </span>
-                </button>
+                {recenzije && <span className="quick-action-broj"
+                  aria-label={`${brojBezOdgovora} recenzija bez odgovora`}>{brojBezOdgovora}</span>}
+                </a>
                 </div>
           <section aria-labelledby = "sadrzaj-naslov">
             <h2 id = "sadrzaj-naslov">Pregled sadržaja</h2>
@@ -327,7 +388,7 @@ function App() {
                   <span>Igrice</span>
                 </div>
               </a>
-              <div className = "stat-card stat-card--lavanda">
+              <a className="stat-card stat-card--lavanda stat-card-link" href="#igrice">
                 <div className="stat-card-icon" aria-hidden="true">
                   <Layers size={28} />
                 </div>
@@ -335,9 +396,9 @@ function App() {
                   <strong>{stanjeNivoa === 'ucitano' ? nivoi.length : '-'}</strong>
                   <span>Nivoi</span>
                 </div>
-              </div>
+              </a>
 
-              <div className = "stat-card stat-card--mint">
+              <a className="stat-card stat-card--mint stat-card-link" href="#igrice">
                 <div className="stat-card-icon" aria-hidden="true">
                   <CalendarDays size={28} />
                 </div>
@@ -345,30 +406,82 @@ function App() {
                   <strong>{aktivnosti?.length ?? '-'}</strong>
                   <span>Aktivnosti</span>
                 </div>
-              </div>
+              </a>
 
-              <div className = "stat-card">
+              <a className="stat-card stat-card-link" href="#avatari">
                 <div className="stat-card-icon" aria-hidden="true">
                   <UserRound size={28} />
                 </div>
                 <div className="stat-card-text">
-                  <strong>{brojAvatara ?? '-'}</strong>
+                  <strong>{avatari?.length ?? '-'}</strong>
                   <span>Avatari</span>
                 </div>
-                </div>
+                </a>
 
-              <div className = "stat-card stat-card--zelena">
+              <a className="stat-card stat-card--zelena stat-card-link" href="#recenzije">
                 <div className="stat-card-icon" aria-hidden="true">
                   <MessageSquareMore size={28} />
                 </div>
                 <div className="stat-card-text">
-                  <strong>{brojRecenzija ?? '-'}</strong>
+                  <strong>{recenzije?.length ?? '-'}</strong>
                   <span>Recenzije</span>
                 </div>
-                </div>
+                </a>
               </div>
               </section>
-          </> : prikaz === 'sadrzaji' ? (
+          </> : prikaz === 'avatari' ? <Avatari avatari={avatari} greska={greskaAvatara} naslovPrikaza={naslovPrikaza}
+            onSacuvan={(avatar) => setAvatare((lista) => lista?.some(({ id }) => id === avatar.id)
+              ? lista.map((stavka) => stavka.id === avatar.id ? avatar : stavka)
+              : [...(lista ?? []), avatar])} />
+          : prikaz === 'recenzije' ? <section className="recenzije">
+            <header className="recenzije-zaglavlje">
+              <div><h1 ref={naslovPrikaza} tabIndex={-1}>Recenzije</h1>
+                <p>Pregled ocjena, komentara i odgovora korisnicima.</p></div>
+              <button className="secondary" type="button" disabled={ucitavaRecenzije}
+                onClick={() => setOsvjezavanjeRecenzija((broj) => broj + 1)}>
+                <RefreshCw size={17} aria-hidden="true" /> {ucitavaRecenzije ? 'Učitavanje…' : 'Osvježi'}
+              </button>
+            </header>
+            <div className="recenzije-brojaci">
+              <a href="#recenzije"><MessageCircle size={19} aria-hidden="true" /><strong>{recenzije?.length ?? '–'}</strong>Ukupno recenzija</a>
+              <a href="#recenzije?filter=bez-odgovora"><Clock size={19} aria-hidden="true" /><strong>{recenzije ? brojBezOdgovora : '–'}</strong>Bez odgovora</a>
+              <a href="#recenzije?filter=odgovorene"><CircleCheck size={19} aria-hidden="true" /><strong>{recenzije ? recenzije.length - brojBezOdgovora : '–'}</strong>Sa odgovorom</a>
+            </div>
+            <div className="recenzije-lista">
+            <nav className="recenzije-filteri" aria-label="Filter recenzija">
+              <a href="#recenzije" aria-current={!bezOdgovora && !samoOdgovorene ? 'page' : undefined}>Sve recenzije</a>
+              <a href="#recenzije?filter=bez-odgovora" aria-current={bezOdgovora ? 'page' : undefined}>Bez odgovora</a>
+              <a href="#recenzije?filter=odgovorene" aria-current={samoOdgovorene ? 'page' : undefined}>Odgovorene</a>
+            </nav>
+            {porukaRecenzije && <p role="status">{porukaRecenzije}</p>}
+            {greskaRecenzija ? <p className="error" role="alert">{greskaRecenzija}</p>
+              : !prikazaneRecenzije ? <p role="status">Učitavanje recenzija…</p>
+              : !prikazaneRecenzije.length ? <div className="recenzije-prazno">
+                <span><MessagesSquare size={32} aria-hidden="true" /></span>
+                <h2>{bezOdgovora ? 'Nema recenzija bez odgovora' : samoOdgovorene ? 'Nema odgovorenih recenzija' : 'Još nema recenzija'}</h2>
+                {!bezOdgovora && !samoOdgovorene && <p>Kada korisnici ocijene igrice ili ostave komentare, njihove recenzije će se prikazati ovdje.</p>}
+              </div>
+              : prikazaneRecenzije.map((recenzija) => <article key={recenzija.id} className="recenzija-kartica">
+                <header className="recenzije-zaglavlje">
+                  <div><h2>Korisnik #{recenzija.idKorisnika}</h2>
+                    <p>Igrica: {igrice?.find(({ id }) => id === recenzija.idIgrice)?.naziv ?? `#${recenzija.idIgrice}`}
+                      {' · '}{new Date(recenzija.datumKreiranja).toLocaleDateString('sr-Latn-BA')}</p></div>
+                  <span className={recenzija.odgovor ? 'recenzija-status odgovorena' : 'recenzija-status'}>
+                    {recenzija.odgovor ? 'Odgovorena' : 'Bez odgovora'}</span>
+                </header>
+                <div className="recenzija-zvjezdice" role="img" aria-label={`Ocjena ${recenzija.ocjena} od 5`}>
+                  {[1, 2, 3, 4, 5].map((broj) => <Star key={broj} size={20} aria-hidden="true"
+                    fill={broj <= recenzija.ocjena ? 'currentColor' : 'none'} />)}
+                </div>
+                {recenzija.komentar && <blockquote>{recenzija.komentar}</blockquote>}
+                <OdgovorNaRecenziju id={recenzija.id} odgovor={recenzija.odgovor} onSacuvan={(odgovor) => {
+                  setRecenzije((lista) => lista?.map((stavka) => stavka.id === recenzija.id
+                    ? { ...stavka, odgovor } : stavka) ?? null);
+                  setPorukuRecenzije(odgovor ? 'Odgovor je sačuvan.' : 'Odgovor je obrisan.');
+                }} />
+              </article>)}
+            </div>
+          </section> : prikaz === 'sadrzaji' ? (
             <Sadrzaji naslovPrikaza={naslovPrikaza} />
           ) : prikaz === 'kategorije' ? <Kategorije
             key={idOtvoreneKategorije}

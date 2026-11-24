@@ -1,7 +1,30 @@
+# Expo HAS CHANGED
+
+Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
+
 # Podjela rada i API primjeri
 
 Prijedlog podjele rada za pet osoba. Imena i rokove dopisujemo zajedno.
 Implementirane rute su u [README-u](../README.md).
+
+## Šta radi i od koga zavisi naredni korak
+
+| Ko | Može početi odmah | Za integraciju treba |
+| --- | --- | --- |
+| Jelica | Admin unos svih sedam tipova aktivnosti već postoji, a u lokalnoj bazi je unesen po jedan primjer svakog tipa. Dovršiti dodavanje i uređivanje avatara te pisanje, izmjenu i brisanje admin odgovora kroz panel. Ekrani za pregled zapisa već su povezani. | Za probu cijelog toka recenzija treba primjer iz baze ili korisnički unos od Osobe 2. Admin ekran se može razvijati uz postojeći admin API. |
+| Osoba 2 | Napraviti mobilne ekrane za pitanje, spajanje i razvrstavanje te korisnički ekran za recenzije. Spajanje i razvrstavanje već imaju javni dohvat i provjeru poteza. | Za čuvanje pokušaja i bodova treba ugovor Osobe 5. Za upis korisničkih recenzija treba njena prijava i identitet korisnika. |
+| Osoba 3 | Povezati izbor kategorije, igrice i nivoa. Napraviti ekrane za memoriju i osmosmjerku. Memorija već ima javni dohvat. Za osmosmjerku se ekran može razvijati s probnom mrežom. | Za poteze memorije i osmosmjerke koji čuvaju stanje treba ugovor Osobe 5. Osoba 3 definiše koje podatke ekrani dobijaju i šalju. |
+| Osoba 4 | Napraviti mobilne ekrane za slaganje slova i čitanje ili slušanje bajke s probnim podacima. Dogovoriti javne podatke za igranje. | Za upis napretka i završetka treba ugovor Osobe 5. |
+| Osoba 5 | Korisnička prijava, vlasništvo nad dječijim profilom, izbor avatara i zajednički servis pokušaja i napretka. Prvo podijeliti putanje, primjere JSON-a i način identifikacije korisnika i pokušaja s Osobama 2, 3 i 4. | Za provjeru ugovora povezati jedan kompletan tok s osobom koja radi tu igru, pa isti obrazac primijeniti na ostale. |
+
+Na Osobu 5 se čeka za integraciju prijave, profila i trajnog čuvanja pokušaja. Ekrani, navigacija, priprema test podataka i provjera postojećih javnih ruta mogu ići paralelno. Detalji prikaza su u [uputstvu za mobilni tim](MOBILNA-API.md), uključujući obojene pločice osmosmjerke i bajku koja se lista kao slikovnica.
+
+### Rad na zajedničkoj bazi i API-ju
+
+- Za novu ili postojeću lokalnu bazu pokrenite [schema.sql](../database/schema.sql) pa [seed.sql](../database/seed.sql). Šema uključuje usklađivanje postojećih tabela za avatare, razvrstavanje i recenzije. Lokalno usklađivanje važi samo za bazu na kojoj je pokrenuto.
+- Ako zadatak traži novu kolonu ili vezu, osoba koja radi taj dio priprema migraciju i usklađuje `schema.sql` s Jelicom. Dogovorite primjenu prije testiranja na zajedničkoj bazi.
+- Mobilni dio koristi javne rute za igranje. Admin rute mogu sadržati rješenja. Postojeće javne provjere spajanja i razvrstavanja ne upisuju pokušaje ni bodove.
+- Za postojeće javne rute koristite konfigurisanu igricu sa statusom `AKTIVNA` u testnoj bazi. Za nove rute prije spajanja provjerite tačan i pogrešan potez, ponavljanje istog `idZahtjeva` i nastavak nakon ponovnog otvaranja ekrana ako se stanje čuva.
 
 ## Podjela rada
 
@@ -34,7 +57,7 @@ PATCH mijenja dio zapisa, DELETE briše. Operacije unosa sadržaja su za admina.
 | Korisnički nalog | POST `/auth/register`, POST `/auth/login`, POST `/auth/logout`, GET `/auth/me` |
 | Profili djece | GET i POST `/igraci`; GET, PUT i DELETE `/igraci/{id}` |
 | Izbor avatara | PATCH `/igraci/{id}/avatar` |
-| Fajlovi | POST `/admin/fajlovi` za sliku/audio; GET `/fajlovi/{id}` za dohvat |
+| Fajlovi | POST `/admin/fajlovi` za sliku; POST `/admin/fajlovi/audio` za WAV; GET `/fajlovi/{naziv}` za dohvat |
 | Početak nivoa | POST `/pokusaji-igre` |
 | Početak aktivnosti | POST `/pokusaji-igre/{id}/pokusaji-aktivnosti` |
 | Stanje pokušaja | GET `/pokusaji-igre/{id}`, GET `/pokusaji-aktivnosti/{id}` |
@@ -58,6 +81,13 @@ Primjer POST `/api/aktivnosti`:
 
 ID-evi su primjeri: koriste se stvarni ID-evi iz baze.
 
+### Avatari na profilima djece
+
+- Tri slike već pripremljene u mobilnoj aplikaciji unose se kao početni avatari. Jelica u admin panelu upravlja listom avatara.
+- Mobilni dio zadržava postojeći ekran za izbor. Učitava `GET /api/avatari?aktivan=true` i koristi `putanjaSlike` za prikaz slike.
+- Kad profil ima ID iz baze, mobilni dio šalje `PATCH /api/igraci/{id}/avatar` s tijelom `{"idAvatara": 2}`. Backend provjerava da je profil dostupan prijavljenom korisniku i da je odabrani avatar aktivan. Izbor sprema u postojeće polje `igrac.idAvatara`.
+- API za profil treba vratiti `idAvatara` kako bi aplikacija prikazala isti avatar pri sljedećem otvaranju profila. Spremanje izbora dogovara se s osobom zaduženom za korisničke profile.
+
 ## Admin unos po tipu aktivnosti
 
 Za svaku konfiguraciju koristimo GET i PUT
@@ -76,7 +106,7 @@ Za spajanje admin GET vraća konfiguraciju po rednom broju para. GET
 Kad je uključen nasumičan raspored, pregled promiješa desnu listu pri svakom
 dohvatu. Sačuvani parovi i njihov redoslijed ostaju isti.
 
-Za razvrstavanje svaka grupa ima naziv i najmanje jednu stavku. Isti sadržaj
+Za razvrstavanje svaka grupa ima naziv, opcionalnu oznaku `idSadrzaja` i najmanje jednu stavku. Isti sadržaj
 može se koristiti jednom po aktivnosti. PUT prije prvog pokušaja zamjenjuje
 grupe i stavke u jednoj transakciji. GET vraća ID-eve grupa, stavki i sadržaja.
 Nakon prvog pokušaja PUT vraća 409.
@@ -88,7 +118,7 @@ Nakon prvog pokušaja PUT vraća 409.
 | `spajanje` | `{"nasumicanRaspored":true,"parovi":[{"redniBroj":1,"idLijevogSadrzaja":2,"idDesnogSadrzaja":3}]}` |
 | `razvrstavanje` | `{"grupe":[{"naziv":"Voće","stavke":[{"idSadrzaja":2}]},{"naziv":"Povrće","stavke":[{"idSadrzaja":3}]}]}` |
 | `slaganje-slova` | `{"ciljniTekst":"PAS","putanjaSlike":"/api/fajlovi/1"}` |
-| `osmosmjerka` | `{"brojRedova":3,"brojKolona":3,"mreza":[["P","A","S"],["M","A","Š"],["K","O","S"]],"rijeci":[{"rijec":"PAS","pocetniRed":0,"pocetnaKolona":0,"krajnjiRed":2,"krajnjaKolona":2}]}` |
+| `osmosmjerka` | `{"brojRedova":3,"brojKolona":3,"mreza":[["P","A","S"],["M","A","Š"],["K","O","S"]],"rijeci":[{"rijec":"PAS","pocetniRed":0,"pocetnaKolona":0,"krajnjiRed":0,"krajnjaKolona":2}]}` |
 | `bajka` | `{"naslov":"Mali medo","tekst":"Jednom davno…","putanjaAudioZapisa":null,"putanjaNaslovneSlike":null}` |
 
 Koordinate osmosmjerke počinju od nule. Riječi mogu ići vodoravno, uspravno ili
@@ -97,7 +127,7 @@ PUT zamjenjuje mrežu i riječi u istoj transakciji. Nakon prvog pokušaja vrać
 
 ## API za igranje
 
-Osoba zadužena za igru implementira sljedeće rute. `{id}` je ID pokušaja aktivnosti.
+Sljedeće rute su plan za igranje s trajnim pokušajima. Osoba zadužena za igru ih povezuje sa zajedničkim servisom Osobe 5. `{id}` je ID pokušaja aktivnosti, dok postojeće javne rute pod `/api/aktivnosti/{id}/…` koriste ID same aktivnosti.
 
 | Metoda i završetak putanje `/api/pokusaji-aktivnosti/{id}/…` | Primjer podataka koje šalje mobilna aplikacija |
 | --- | --- |
@@ -117,9 +147,10 @@ Mobilni DTO-i i detaljni odgovori ovih ruta dogovaraju se prije rada na ekranima
 
 ## Prvo sljedeće
 
-1. Osposobiti kategorije s bazom, zatim dodati igre, nivoe, aktivnosti i sadržaj.
-2. Potvrditi JSON primjere, pa napraviti CRUD i jednostavne admin formulare.
-3. Podijeliti imena i rokove; svaka osoba demonstrira jedan kompletan tok.
+1. Dopisati imena uz Osobe 2–5 i potvrditi ko demonstrira prvi tok s trajnim pokušajem.
+2. Osoba 5 podijeli ugovor za prijavu, profil, početak pokušaja i čuvanje rezultata. U međuvremenu ostali mogu raditi na ekranima i postojećim javnim rutama.
+3. Jelica dovršava upravljanje avatarima i odgovorima na recenzije, a za punjenje baze tim koristi potvrđene konfiguracije i stvarne ID-eve sadržaja.
+4. Nakon prve integracije svaka osoba demonstrira jedan kompletan tok svog modula.
 
-Prije implementacije dopuniti bazu: veza igrača i avatara, jedinstveni ključevi
+Prije implementacije provjeriti da postojeća baza ima vezu igrača i avatara te dopuniti jedinstvene ključeve
 za ponovljene zahtjeve i trajno stanje memorije. Detalje uskladiti s nositeljicom modula.

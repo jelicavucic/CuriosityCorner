@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react';
 import {
-  BookOpen, Calculator, CaseSensitive, ChevronRight, Ellipsis, Folder, Globe, Headphones,
+  BookOpen, Calculator, CaseSensitive, ChevronRight, Ellipsis, Folder, Globe, Headphones, House,
   Leaf, Map as IkonaMape, PawPrint, Pencil, Plus, Puzzle, Shapes, Sparkles, Trash2, Type,
 } from 'lucide-react';
 import { posaljiAdminZahtjev } from './auth';
@@ -145,10 +145,12 @@ export function Kategorije({
   }
 
   return <section className="kategorije-stranica" aria-labelledby="kategorije">
-    {odabrana && <nav className="kategorije-putanja" aria-label="Putanja kategorije">
-      <a className="kategorije-nazad" href="#kategorije">Kategorije</a>
-      <span aria-hidden="true">/</span>
-      <span aria-current="page">{odabrana.naziv}</span>
+    {odabrana && <nav className="putanja-kategorije" aria-label="Putanja kategorije">
+      <a href="#pregled" aria-label="Pregled"><House size={17} aria-hidden="true" /></a>
+      <ChevronRight size={15} aria-hidden="true" />
+      <a href="#kategorije">Kategorije</a>
+      <ChevronRight size={15} aria-hidden="true" />
+      <strong aria-current="page">{odabrana.naziv}</strong>
     </nav>}
     <div className="kategorije-zaglavlje">
       <div>

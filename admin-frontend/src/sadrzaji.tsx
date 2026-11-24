@@ -143,7 +143,7 @@ function Biblioteka({ podaci, onOdabir, odabraniId, onAkcija }: {
           <td><MeniSadrzaja stavka={stavka} onAkcija={onAkcija} /></td>
         </tr>)}</tbody>
       </table>
-    </div> : <ul className="sadrzaj-mreza">{rezultati.map((stavka) => {
+    </div> : <ul className={onAkcija ? 'sadrzaj-mreza sadrzaj-mreza--upravljanje' : 'sadrzaj-mreza'}>{rezultati.map((stavka) => {
       const vrsta = vrstaSadrzaja(stavka);
       const { Ikona, opis } = izgledKartice[vrsta];
       return <li key={stavka.id} className={`sadrzaj-kartica sadrzaj--${vrsta}`}>

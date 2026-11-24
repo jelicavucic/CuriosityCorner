@@ -64,7 +64,7 @@ public class RazvrstavanjeService {
 
         List<StavkaRazvrstavanja> noveStavke = new ArrayList<>();
         for (var unos : request.grupe()) {
-            var grupa = grupe.save(new GrupaRazvrstavanja(id, unos.naziv().strip()));
+            var grupa = grupe.save(new GrupaRazvrstavanja(id, unos.naziv().strip(), unos.idSadrzaja()));
             for (var stavka : unos.stavke()) {
                 noveStavke.add(new StavkaRazvrstavanja(grupa.getId(), stavka.idSadrzaja()));
             }
@@ -87,6 +87,8 @@ public class RazvrstavanjeService {
                 }
             }
         }
+        uneseneGrupe.stream().map(RazvrstavanjeRequest.Grupa::idSadrzaja)
+                .filter(java.util.Objects::nonNull).forEach(trazeniSadrzaji::add);
         Set<Integer> postojeci = sadrzaji.findAllById(trazeniSadrzaji).stream()
                 .map(Sadrzaj::getId)
                 .collect(Collectors.toSet());
@@ -114,7 +116,7 @@ public class RazvrstavanjeService {
                         Collectors.mapping(stavka -> new RazvrstavanjeResponse.Stavka(
                                 stavka.getId(), stavka.getIdSadrzaja()), Collectors.toList())));
         var rezultat = sveGrupe.stream()
-                .map(grupa -> new RazvrstavanjeResponse.Grupa(grupa.getId(), grupa.getNaziv(),
+                .map(grupa -> new RazvrstavanjeResponse.Grupa(grupa.getId(), grupa.getNaziv(), grupa.getIdSadrzaja(),
                         stavkePoGrupi.getOrDefault(grupa.getId(), List.of())))
                 .toList();
         return new RazvrstavanjeResponse(id, rezultat);
