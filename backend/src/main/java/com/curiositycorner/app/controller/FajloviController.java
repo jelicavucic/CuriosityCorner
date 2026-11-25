@@ -2,6 +2,7 @@ package com.curiositycorner.app.controller;
 
 import com.curiositycorner.app.exception.ApiException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
@@ -100,12 +101,15 @@ public class FajloviController {
             return ResponseEntity.notFound().build();
         }
         Path fajl = direktorijum.resolve(naziv);
-        if (!Files.isRegularFile(fajl, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+        Resource resurs = Files.isRegularFile(fajl, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+                ? new UrlResource(fajl.toUri())
+                : new ClassPathResource("pocetni-fajlovi/" + naziv);
+        if (!resurs.exists()) {
             return ResponseEntity.notFound().build();
         }
         String format = naziv.substring(naziv.lastIndexOf('.') + 1);
         MediaType tip = format.equals("wav") ? WAV : TIPOVI.get(format.equals("jpeg") ? "jpg" : format);
-        return ResponseEntity.ok().contentType(tip).body(new UrlResource(fajl.toUri()));
+        return ResponseEntity.ok().contentType(tip).body(resurs);
     }
 
     private Slika pripremiSliku(byte[] podaci) {

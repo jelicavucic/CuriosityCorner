@@ -18,7 +18,18 @@ U MySQL Workbenchu za novu bazu redom izvršiti:
 1. `database/schema.sql`
 2. `database/seed.sql`
 
-Za postojeću lokalnu bazu pokrenuti isti redoslijed. `schema.sql` dodaje nedostajuće veze za avatare i grupe razvrstavanja te čini staro polje `recenzija.IdIgraca` opcionalnim ako postoji. `seed.sql` usklađuje potkategorije Matematike i upisuje probnu osmosmjerku i recenziju bez dupliranja pri ponovnom pokretanju.
+Za postojeću lokalnu bazu pokrenuti isti redoslijed. `schema.sql` dodaje nedostajuće veze za avatare i grupe razvrstavanja te čini staro polje `recenzija.IdIgraca` opcionalnim ako postoji. `seed.sql` usklađuje potkategorije Matematike i upisuje probnu osmosmjerku, sadržaje, avatare i recenziju bez dupliranja pri ponovnom pokretanju. Slike probnih avatara dolaze uz backend.
+
+Za prijenos postojećeg lokalnog administratora postavi sljedeće vrijednosti u istoj MySQL konekciji prije izvršavanja `seed.sql`. Vrijednosti uzmi iz svog reda u tabeli `administrator`. SQL s popunjenim vrijednostima čuvaj lokalno. Seed dodaje i probni odgovor na recenziju pod tim nalogom.
+
+```sql
+SET @cc_admin_korisnicko_ime = 'korisnicko_ime';
+SET @cc_admin_ime = 'Ime administratora';
+SET @cc_admin_email = 'admin@example.invalid';
+SET @cc_admin_bcrypt = '<postojeći BCrypt iz LozinkaHash>';
+```
+
+Za prijenos postojećih sadržaja, avatara, recenzija i odgovora na drugi računar koristi **Server → Data Export** u MySQL Workbenchu. Izvezi razvojnu bazu `curiosity_corner` kao **Dump Structure and Data**, pa je uvezi na drugom računaru kroz **Server → Data Import**. Uz izvoz kopiraj i fajlove iz `%USERPROFILE%\.curiositycorner\fajlovi` u isti folder ispod korisničkog profila na drugom računaru. Ako je postavljen `curiositycorner.fajlovi.direktorijum`, koristi taj folder. Zadrži izvorne nazive fajlova jer ih baza koristi u URL-ovima.
 
 U MySQL Workbenchu uključiti **Query → Stop Script Execution On Errors** prije pokretanja. Ako unos podataka prijavi grešku, izvršiti `ROLLBACK;` u istoj konekciji i prekinuti pokušaj.
 
