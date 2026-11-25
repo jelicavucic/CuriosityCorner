@@ -7,6 +7,89 @@ SET SESSION sql_safe_updates = 0;
 
 START TRANSACTION;
 
+-- Za lokalni unos postojećeg administratora, prije pokretanja ovog fajla
+-- postavi @cc_admin_korisnicko_ime, @cc_admin_ime, @cc_admin_email i
+-- @cc_admin_bcrypt u istoj MySQL sesiji.
+INSERT INTO administrator (KorisnickoIme, Ime, Email, LozinkaHash)
+SELECT @cc_admin_korisnicko_ime, @cc_admin_ime, @cc_admin_email, @cc_admin_bcrypt
+WHERE NULLIF(TRIM(@cc_admin_korisnicko_ime), '') IS NOT NULL
+  AND NULLIF(TRIM(@cc_admin_ime), '') IS NOT NULL
+  AND NULLIF(TRIM(@cc_admin_email), '') IS NOT NULL
+  AND CHAR_LENGTH(@cc_admin_bcrypt) = 60
+  AND LEFT(@cc_admin_bcrypt, 4) IN ('$2a$', '$2b$', '$2y$')
+  AND NOT EXISTS (
+    SELECT 1 FROM administrator
+    WHERE KorisnickoIme = CONVERT(@cc_admin_korisnicko_ime USING utf8mb4) COLLATE utf8mb4_unicode_ci
+       OR Email = CONVERT(@cc_admin_email USING utf8mb4) COLLATE utf8mb4_unicode_ci
+);
+SET @cc_admin_id = (
+    SELECT IdAdministratora FROM administrator
+    WHERE KorisnickoIme = CONVERT(@cc_admin_korisnicko_ime USING utf8mb4) COLLATE utf8mb4_unicode_ci
+      AND Email = CONVERT(@cc_admin_email USING utf8mb4) COLLATE utf8mb4_unicode_ci
+);
+SET @cc_admin_bcrypt = NULL;
+
+INSERT INTO avatar (Naziv, PutanjaSlike, Aktivan)
+SELECT primjeri.Naziv, primjeri.PutanjaSlike, TRUE
+FROM (
+    SELECT 'Probni avatar 1' AS Naziv, '/api/fajlovi/cc-demo-avatar-1.png' AS PutanjaSlike
+    UNION ALL SELECT 'Probni avatar 2', '/api/fajlovi/cc-demo-avatar-2.png'
+    UNION ALL SELECT 'Probni avatar 3', '/api/fajlovi/cc-demo-avatar-3.png'
+) AS primjeri
+WHERE NOT EXISTS (SELECT 1 FROM avatar WHERE Naziv = primjeri.Naziv);
+
+INSERT INTO sadrzaj (Tekst, PutanjaSlike, AlternativniTekst)
+SELECT 'Pronađi skrivenu riječ u mreži slova.', NULL, NULL
+WHERE NOT EXISTS (
+    SELECT 1 FROM sadrzaj
+    WHERE Tekst = 'Pronađi skrivenu riječ u mreži slova.' AND PutanjaSlike IS NULL
+);
+
+INSERT INTO sadrzaj (Tekst, PutanjaSlike, AlternativniTekst)
+SELECT NULL, '/api/fajlovi/cc-demo-avatar-1.png', 'Ilustracija probnog avatara'
+WHERE NOT EXISTS (
+    SELECT 1 FROM sadrzaj WHERE PutanjaSlike = '/api/fajlovi/cc-demo-avatar-1.png'
+);
+
+
+-- Sadržaji iz izvoza lokalnog kataloga. Baza dodjeljuje ID-eve.
+INSERT INTO sadrzaj (Tekst, PutanjaSlike, AlternativniTekst)
+SELECT katalog.Tekst, katalog.PutanjaSlike, katalog.AlternativniTekst
+FROM (
+    SELECT 'Jabuka' AS Tekst, NULL AS PutanjaSlike, NULL AS AlternativniTekst
+    UNION ALL SELECT 'Mrkva', NULL, NULL
+    UNION ALL SELECT 'Kruska', NULL, NULL
+    UNION ALL SELECT NULL, '/api/fajlovi/b0abc079-f8d2-4dbc-9fd7-27b34a28a3c4.png', 'Šuma'
+    UNION ALL SELECT NULL, '/api/fajlovi/03291d1c-41de-4d6f-a9bb-4f76417ace7c.jpg', 'Jagoda'
+    UNION ALL SELECT 'Jagoda', NULL, NULL
+    UNION ALL SELECT 'Koliko je jagoda na slici?', '/api/fajlovi/03291d1c-41de-4d6f-a9bb-4f76417ace7c.jpg', 'Jagoda'
+    UNION ALL SELECT '1', NULL, NULL
+    UNION ALL SELECT '3', NULL, NULL
+    UNION ALL SELECT '4', NULL, NULL
+    UNION ALL SELECT '2', NULL, NULL
+    UNION ALL SELECT 'Grožđe', '/api/fajlovi/5974672a-7d09-425a-b196-f7d2ca9d5745.png', NULL
+    UNION ALL SELECT 'Mrkva', '/api/fajlovi/4e005f32-5ff9-49a1-96c9-5df9bc374c98.png', NULL
+    UNION ALL SELECT 'Jabuka', '/api/fajlovi/8b2f568c-3892-4d00-a56f-604878d223a1.png', NULL
+    UNION ALL SELECT 'Drvo', '/api/fajlovi/fe5a20e2-969c-40ac-9ff7-a62f41ee9f43.png', NULL
+    UNION ALL SELECT NULL, '/api/fajlovi/8b94b975-31bf-44b8-b969-79b746e4b541.png', NULL
+    UNION ALL SELECT NULL, '/api/fajlovi/59446c18-e2c0-490c-a232-aee04c0ee388.png', NULL
+    UNION ALL SELECT 'Luk', '/api/fajlovi/0d98a4b1-09e6-4eb3-9108-04bddabb9705.png', NULL
+    UNION ALL SELECT 'Patlidžan', '/api/fajlovi/4cb33983-76d8-400f-9a60-7211fec4a73a.png', NULL
+    UNION ALL SELECT 'Brokula', '/api/fajlovi/ba026cdb-c0f4-44b9-b0f0-8d7116788fde.png', NULL
+    UNION ALL SELECT 'Krastavac', '/api/fajlovi/22b32186-b7c2-4670-9c2f-0bc3b0ae49e1.png', NULL
+    UNION ALL SELECT 'Lubenica', '/api/fajlovi/bb1f08ea-b70c-4dda-aaf0-fce46cc69be1.png', NULL
+    UNION ALL SELECT 'Kukuruz', '/api/fajlovi/fb47a148-e939-48b6-bb45-8b9a5f9f8d2c.png', NULL
+    UNION ALL SELECT 'Krompir', '/api/fajlovi/f5a48163-0a41-4202-ad6d-552c9fef5bf6.png', NULL
+    UNION ALL SELECT 'Jagoda', '/api/fajlovi/9ab22f3e-2c3e-4075-a8cd-f91956ed04b8.png', NULL
+    UNION ALL SELECT 'Kruška', '/api/fajlovi/d16db542-4afd-48f5-89d9-a2e0e51a92b1.png', NULL
+    UNION ALL SELECT 'Banana', '/api/fajlovi/d52400fe-58bb-4347-aac1-dfb15671047f.png', NULL
+) AS katalog
+WHERE NOT EXISTS (
+    SELECT 1 FROM sadrzaj AS postojeci
+    WHERE BINARY postojeci.Tekst <=> BINARY katalog.Tekst
+      AND BINARY postojeci.PutanjaSlike <=> BINARY katalog.PutanjaSlike
+      AND BINARY postojeci.AlternativniTekst <=> BINARY katalog.AlternativniTekst
+);
 
 INSERT INTO kategorija (IdNadkategorije, Naziv, Opis)
 SELECT NULL, podaci.Naziv, NULL
@@ -220,6 +303,11 @@ SET @cc_recenzija = (
     SELECT MIN(IdRecenzije) FROM curiosity_corner.recenzija
     WHERE IdIgrice = @cc_igrica AND idKorisnika = @cc_korisnik
 );
+
+INSERT INTO odgovor_na_recenziju (IdRecenzije, IdAdministratora, TekstOdgovora)
+SELECT @cc_recenzija, @cc_admin_id, 'Hvala na recenziji i prijedlogu za nove zadatke!'
+WHERE @cc_recenzija IS NOT NULL AND @cc_admin_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM odgovor_na_recenziju WHERE IdRecenzije = @cc_recenzija);
 
 COMMIT;
 SET SESSION sql_safe_updates = @prethodni_safe_updates;
