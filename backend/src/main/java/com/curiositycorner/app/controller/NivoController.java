@@ -20,6 +20,7 @@ public class NivoController {
         this.nivoService = nivoService;
     }
 
+    @CrossOrigin(origins = "http://localhost:8081")
     @GetMapping
     public List<NivoResponse> pronadjiSve() {
         return nivoService.pronadjiSve();

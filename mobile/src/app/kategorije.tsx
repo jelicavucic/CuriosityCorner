@@ -59,6 +59,15 @@ export default function KategorijeScreen() {
     setOdabrana(roditelj ?? null);
   };
 
+  const izaberiKategoriju = (kategorija: Kategorija) => {
+    const imaPotkategorije = kategorije.some((k) => k.idNadkategorije === kategorija.id);
+    if (imaPotkategorije) {
+      setOdabrana(kategorija);
+    } else {
+      router.push({ pathname: './igrice', params: { kategorijaId: String(kategorija.id), naziv: kategorija.naziv } });
+    }
+  };
+
   return (
     <View style={styles.page}>
       <View style={styles.header}>
@@ -75,7 +84,7 @@ export default function KategorijeScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.list}>
           {prikazane.length === 0 ? <Text style={styles.message}>Ovdje još nema kategorija.</Text> : prikazane.map((k, index) => (
-            <Pressable accessibilityRole="button" accessibilityLabel={k.naziv} key={k.id} onPress={() => setOdabrana(k)} style={styles.card}>
+            <Pressable accessibilityRole="button" accessibilityLabel={k.naziv} key={k.id} onPress={() => izaberiKategoriju(k)} style={styles.card}>
               <View style={[styles.circle, { backgroundColor: ['#FFF3AE', '#FFD8C9', '#D5F5E7', '#E5D9F6'][index % 4] }]}>
                 <Text style={styles.emoji}>{['⭐', '🌍', '🌱', '📚', '💡'][index % 5]}</Text>
               </View>

@@ -20,6 +20,7 @@ public class IgricaController {
         this.igricaService = igricaService;
     }
 
+    @CrossOrigin(origins = "http://localhost:8081")
     @GetMapping
     public List<IgricaResponse> pronadjiSve() {
         return igricaService.pronadjiSve();
