@@ -6,6 +6,7 @@ import com.curiositycorner.app.service.KategorijaService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -27,6 +28,7 @@ public class KategorijaController {
         this.kategorijaService = kategorijaService;
     }
 
+    @CrossOrigin(origins = "http://localhost:8081")
     @GetMapping
     public List<KategorijaResponse> pronadjiSve() {
         return kategorijaService.pronadjiSve();

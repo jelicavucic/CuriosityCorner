@@ -104,8 +104,7 @@ export default function LoginScreen() {
   };
 
   const udjiUIgru = (index: number) => {
-    // TODO: kada igra bude spremna, ovde ide navigacija na ekran igre
-    // router.push('/igra');
+    router.push('./kategorije');
   };
 
   const kliknutoNaProfil = (index: number) => {
